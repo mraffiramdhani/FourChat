@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "318451636949",
+    "firebase_url": "https://fourchat-7a9f9.firebaseio.com",
+    "project_id": "fourchat-7a9f9",
+    "storage_bucket": "fourchat-7a9f9.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:318451636949:android:1dc395a5107b5a88bfe05c",
+        "android_client_info": {
+          "package_name": "com.fourchat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "318451636949-lovcr9v28gh9o5900r4gvtv4k0iafb23.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCBPUBYt9ISMyX47nIZmBFewMw3Q0Gv4KA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "318451636949-lovcr9v28gh9o5900r4gvtv4k0iafb23.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
