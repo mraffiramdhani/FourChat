@@ -35,11 +35,15 @@ const styles = StyleSheet.create({
 	},
 	passwordVisibility: {
 		justifyContent: 'center',
-		alignItems: 'center'
+		alignItems: 'center',
+		width: normalize(70),
 	},
 	button: {
 		marginVertical: 5,
-	}
+	},
+  input: {
+    backgroundColor: 'white',
+  }
 });
 
 const inputTheme = {
@@ -69,6 +73,7 @@ const Register = (props) => {
 		      		mode="outlined"
 		      		theme={inputTheme}
 		      		value={name}
+		      		style={styles.input}
 		      		onChangeText={name => setName(name)}
 		      	/>
 		      	<TextInput
@@ -76,6 +81,8 @@ const Register = (props) => {
 		      		mode="outlined"
 		      		theme={inputTheme}
 		      		value={email}
+		      		style={styles.input}
+		      		keyboardType="email-address"
 		      		onChangeText={email => setEmail(email)}
 		      	/>
 		      	<View style={{flex: 1, flexDirection: 'row'}}>
@@ -85,7 +92,7 @@ const Register = (props) => {
 			      		theme={inputTheme}
 			      		value={password}
 			      		secureTextEntry={!visiblePassword}
-			      		style={{flex: 1}}
+			      		style={[styles.input, {flex: 1}]}
 			      		onChangeText={pass => setPassword(pass)}
 			      	/>
 			      	<Button

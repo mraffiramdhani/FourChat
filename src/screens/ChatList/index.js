@@ -1,11 +1,25 @@
-import React from 'react'
-import { View, Text } from 'react-native'
+import React, {useState, useEffect} from 'react';
+import SafeAreaView from 'react-native-safe-area-view';
+import { StyleSheet, View, Text } from 'react-native';
 
-const ChatList = () => {
+const styles = StyleSheet.create({
+	safeArea: {flex: 1},
+	root: {
+		flex: 1,
+		flexDirection: 'column',
+		backgroundColor: 'white',
+		justifyContent: 'center',
+		alignItems: 'center',
+	}
+})
+
+const ChatList = (props) => {
   return (
-    <View>
-      <Text>ChatList</Text>
-    </View>
+  	<SafeAreaView style={styles.safeArea}>
+	    <View style={styles.root}>
+	      <Text>ChatList</Text>
+	    </View>
+    </SafeAreaView>
   );
 };
 

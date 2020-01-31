@@ -1,55 +1,118 @@
 import React, { useState, useEffect } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
-import { StyleSheet, View } from 'react-native';
-import { Card, Text, TextInput } from 'react-native-paper';
+import normalize from 'react-native-normalize';
+import { StyleSheet, View, ScrollView, Image } from 'react-native';
+import { Card, Text, TextInput, Button } from 'react-native-paper';
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   root: {
     flex: 1,
     flexDirection: 'column',
-    backgroundColor: '#117C6F',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  titleWrapper: {
+    width: '100%',
     padding: 20,
   },
   title: {
+    color: '#117C6F',
     fontSize: 28,
-    color: '#fff',
-    marginBottom: 20,
+    fontFamily: 'Nunito-Regular',
   },
-  card: {
+  image: {
+    width: normalize(320),
+    height: normalize(200, 'height'),
+  },
+  formWrapper: {
     flex: 1,
-    elevation: 5,
-    padding: 20,
+    width: '100%',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    marginVertical: 20,
   },
+  passwordVisibility: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: normalize(70),
+  },
+  button: {
+    marginVertical: 5,
+  },
+  input: {
+    backgroundColor: 'white',
+  }
 });
+
+const inputTheme = {
+  colors: {
+    primary: '#117C6F',
+  },
+};
 
 const Login = (props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [visiblePassword, setVisiblePassword] = useState(false);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.root}>
-        <Text style={styles.title}>Log In</Text>
-        <Card style={styles.card}>
-          <Card.Content>
+        <View style={styles.titleWrapper}>
+          <Text style={styles.title}>Login</Text>
+        </View>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Image source={require('../../assets/images/login.png')} style={styles.image} />
+          <View style={styles.formWrapper}>
             <TextInput
-              label='Email'
-              keyboardType="email-address"
+              label="E-mail"
               mode="outlined"
-              placeholder="Type a valid email."
-              underlineColor="green"
-              selectionColor="green"
-              theme={{ colors: { primary: '#117C6F' } }}
+              theme={inputTheme}
               value={email}
-              onChangeText={text => setEmail(text)}
+              style={styles.input}
+              keyboardType="email-address"
+              onChangeText={email => setEmail(email)}
             />
-          </Card.Content>
-          <Card.Actions>
-            {/* <Button>Cancel</Button>
-            <Button>Ok</Button> */}
-          </Card.Actions>
-        </Card>
+            <View style={{flex: 1, flexDirection: 'row'}}>
+              <TextInput
+                label="Password"
+                mode="outlined"
+                theme={inputTheme}
+                value={password}
+                secureTextEntry={!visiblePassword}
+                style={[styles.input, {flex: 1}]}
+                onChangeText={pass => setPassword(pass)}
+              />
+              <Button
+                icon="lock"
+                theme={inputTheme}
+                style={styles.passwordVisibility}
+                compact
+                onPress={() => setVisiblePassword(!visiblePassword)}
+              />
+            </View>
+            <Button
+              style={styles.button}
+              theme={inputTheme}
+              uppercase
+              mode="contained"
+              onPress={() => props.navigation.navigate('ChatList')}
+            >
+            login
+            </Button>
+            <Button
+              style={styles.button}
+              theme={inputTheme}
+              uppercase
+              mode="outlined"
+              onPress={() => props.navigation.navigate('Register')}
+            >
+            register
+            </Button>
+         </View>
+        </ScrollView>
       </View>
     </SafeAreaView>
   );

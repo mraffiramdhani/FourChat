@@ -7,6 +7,7 @@ import Splash from '../screens/Splash';
 import UserAuth from '../screens/UserAuth';
 import Login from '../screens/Login';
 import Register from '../screens/Register';
+import ChatList from '../screens/ChatList';
 
 const AuthStack = createStackNavigator(
   {
@@ -28,11 +29,26 @@ const AuthStack = createStackNavigator(
   }
 );
 
+const ChatStack = createStackNavigator(
+  {
+    ChatList: {
+      screen: ChatList,
+      navigationOptions: {
+        headerShown: false,
+      },
+    },
+  },
+  {
+    initialRouteName: 'ChatList',
+  },
+);
+
 const SwitchNav = createSwitchNavigator(
   {
     Splash,
     UserAuth,
     AuthStack,
+    ChatStack,
   },
   {
     initialRouteName: 'Splash',
