@@ -4,7 +4,7 @@
 import React, { useEffect } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
-import { StyleSheet, View, Image } from 'react-native';
+import { StyleSheet, View, Image, Text } from 'react-native';
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -16,9 +16,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   icon: {
-    width: normalize(200),
-    height: normalize(200, 'height'),
+    width: normalize(150),
+    height: normalize(150, 'height'),
   },
+  title: {
+    color: 'white',
+    fontFamily: 'Nunito-Bold',
+    fontSize: 40,
+    marginTop: 10,
+  }
 });
 
 const Splash = props => {
@@ -32,6 +38,7 @@ const Splash = props => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.root}>
         <Image source={require('../../assets/images/4chat.png')} style={styles.icon} />
+        <Text style={styles.title}>4Chat</Text>
       </View>
     </SafeAreaView>
   );

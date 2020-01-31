@@ -32,6 +32,7 @@ const styles = StyleSheet.create({
     color: '#117C6F',
     textAlign: 'center',
     fontSize: 20,
+    fontFamily: 'Nunito-Regular',
   },
   button: {
     marginVertical: 2,
