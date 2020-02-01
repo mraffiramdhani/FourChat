@@ -65,6 +65,7 @@ const Register = (props) => {
 	const [name, setName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
+	const [nameLength, setNameLength] = useState(25);
 
 	const [visiblePassword, setVisiblePassword] = useState(false);
 
@@ -95,7 +96,7 @@ const Register = (props) => {
 						uid,
 						name,
 						email,
-						photo: null,
+						photo: 'avatar/default.png',
 					});
 					await onSuccess();
 				}
@@ -135,13 +136,18 @@ const Register = (props) => {
 	}
 
 	const onChangeName = (e) => {
-		setName(e);
-		if(e.length === 0){
-      setNameEmpty(true);
-    }
-    else {
-      setNameEmpty(false);
-    }
+		if (e.length <= 25){
+			setName(e);
+			const prevLength = 25;
+			setNameLength(prevLength - e.length);
+			if(e.length === 0){
+	      setNameEmpty(true);
+	      setNameLength(25);
+	    }
+	    else {
+	      setNameEmpty(false);
+	    }
+		}
 	};
 
 	const onChangeEmail = (e) => {
@@ -199,8 +205,10 @@ const Register = (props) => {
 							theme={isNameEmpty ? emptyTheme : inputTheme}
 							value={name}
 							style={styles.input}
+							maxLength={25}
 							onChangeText={name => onChangeName(name)}
 						/>
+						<Text style={{fontSize: 14, color: '#666', textAlign: 'right'}}>{nameLength}</Text>
 						<TextInput
 							label="E-mail"
 							mode="outlined"

@@ -70,12 +70,22 @@ const Login = (props) => {
   
   const [isEmailEmpty, setEmailEmpty] = useState(true);
   const [isPasswordEmpty, setPasswordEmpty] = useState(true);
+  const [isSubmit, setSubmit] = useState(false);
 
-  const handleLogin = () => {
+  useEffect(() => {
+    if(isSubmit){
+      handleLogin();
+    }
+  }, [isSubmit]);
+
+  const onSubmit = () => {
+    setVisibleModal(true);
+    setSubmit(true);
+  };
+
+  const handleLogin = async () => {
     if(!isEmailEmpty && !isPasswordEmpty){
-      firebase
-      .auth()
-      .signInWithEmailAndPassword(email, password)
+      await login(email, password)
       .then(() => onSuccess())
       .catch(error => onFailed(error.message));
     }
@@ -105,11 +115,7 @@ const Login = (props) => {
   }
 
   const onSuccess = () => {
-    setVisibleModal(true);
-    setTimeout(() => {
-      setVisibleModal(false);
-      props.navigation.navigate('ChatList');
-    }, 1000);
+    props.navigation.navigate('ChatList');
   };
 
   const onFailed = err => {
@@ -169,7 +175,7 @@ const Login = (props) => {
               theme={inputTheme}
               uppercase
               mode="contained"
-              onPress={handleLogin}
+              onPress={onSubmit}
               disabled={(isEmailEmpty || isPasswordEmpty) ? true : false}
             >
               login

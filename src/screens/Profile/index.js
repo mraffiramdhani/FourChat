@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
 const Profile = (props) => {
 
   const [uid, setUID] = useState(null);
-  const [email, setEmail] = useState(null);
-  const [name, setName] = useState(null);
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [photo, setPhoto] = useState(null);
 
   const [isLoading, setLoading] = useState(true);
@@ -70,7 +70,15 @@ const Profile = (props) => {
         setUID(snapshot.val().uid);
         setEmail(snapshot.val().email);
         setName(snapshot.val().name);
-        setPhoto(snapshot.val().photo || require('../../assets/images/default.png'));
+        const avatarURI = firebase.storage().ref('/' + snapshot.val().photo);
+        await avatarURI.getDownloadURL().then(file => {
+          if(file !== '' && file !== null && file !== undefined){
+            setPhoto({ uri: file });
+          }
+          else{
+            setPhoto(require('../../assets/images/default.png'));
+          }
+        });
       });
     }
     else{
@@ -90,6 +98,10 @@ const Profile = (props) => {
     });
   };
 
+  const truncate = (source, size) => {
+    return source.length > size ? source.slice(0, size - 1) + "…" : source;
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.root}>
@@ -104,8 +116,8 @@ const Profile = (props) => {
             />
           </View>
           <View style={styles.nameWrapper}>
-            <Text style={styles.name}>{name}</Text>
-            <Text style={styles.email}>{email}</Text>
+            <Text style={styles.name}>{truncate(name, 15)}</Text>
+            <Text style={styles.email}>{truncate(email, 20)}</Text>
           </View>
         </View>
         <View style={styles.bodyWrapper}>
