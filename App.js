@@ -1,7 +1,7 @@
 import React from 'react';
+import Router from './src/config/router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'react-native';
-import Router from './src/config/router';
 
 const App = () => {
   return (

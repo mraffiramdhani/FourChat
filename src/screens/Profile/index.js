@@ -72,12 +72,7 @@ const Profile = (props) => {
         setName(snapshot.val().name);
         const avatarURI = firebase.storage().ref('/' + snapshot.val().photo);
         await avatarURI.getDownloadURL().then(file => {
-          if(file !== '' && file !== null && file !== undefined){
-            setPhoto({ uri: file });
-          }
-          else{
-            setPhoto(require('../../assets/images/default.png'));
-          }
+          setPhoto({ uri: file });
         });
       });
     }
@@ -91,7 +86,7 @@ const Profile = (props) => {
     users().signOut().then(async (result) => {
       setLoading(false);
       setUID(null);
-      setEmail(null);
+      setEmail('');
       await props.navigation.navigate('Login');
     }).catch((error) => {
       Alert.alert('Logout Failed', error.message);

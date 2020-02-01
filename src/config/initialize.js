@@ -19,4 +19,6 @@ module.exports = {
       .signInWithEmailAndPassword(email, pass),
   signup: (email, pass) =>
     firebase.auth().createUserWithEmailAndPassword(email, pass),
+  avatar: (source) => 
+    firebase.storage().ref(source),
 };
