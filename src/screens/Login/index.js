@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { Component } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
-import firebase from 'react-native-firebase';
-import { StyleSheet, View, ScrollView, Image, Modal, Alert } from 'react-native';
-import { Text, TextInput, Button, ActivityIndicator } from 'react-native-paper';
-import { login } from '../../config/initialize';
+import AsyncStorage from '@react-native-community/async-storage';
+import {
+  StyleSheet, View, ScrollView, Image, Platform, PermissionsAndroid, ToastAndroid
+} from 'react-native';
+import { Text, TextInput, Button } from 'react-native-paper';
+import Geolocation from 'react-native-geolocation-service';
+import { login, db } from '../../config/initialize';
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -54,146 +57,218 @@ const inputTheme = {
   },
 };
 
-const emptyTheme = {
-  colors: {
-    primary: 'red',
-  },
-};
+class Login extends Component {
 
-const Login = (props) => {
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const [visiblePassword, setVisiblePassword] = useState(false);
-  const [visibleModal, setVisibleModal] = useState(false);
-  
-  const [isEmailEmpty, setEmailEmpty] = useState(true);
-  const [isPasswordEmpty, setPasswordEmpty] = useState(true);
-  const [isSubmit, setSubmit] = useState(false);
-
-  useEffect(() => {
-    if(isSubmit){
-      handleLogin();
-    }
-  }, [isSubmit]);
-
-  const onSubmit = () => {
-    setVisibleModal(true);
-    setSubmit(true);
-  };
-
-  const handleLogin = async () => {
-    if(!isEmailEmpty && !isPasswordEmpty){
-      await login(email, password)
-      .then(() => onSuccess())
-      .catch(error => onFailed(error.message));
-    }
-    else {
-      Alert.alert('Login Message', 'Please Provide a Valid Data.');
-    }
-  };
-
-  const onChangeEmail = (e) => {
-    setEmail(e);
-    if(e.length === 0){
-      setEmailEmpty(true);
-    }
-    else {
-      setEmailEmpty(false);
+  constructor(props) {
+    super(props)
+    this._isMounted = false;
+    this.state = {
+      email: '',
+      password: '',
+      visiblePassword: false,
     }
   }
 
-  const onChangePassword = (e) => {
-    setPassword(e);
-    if (e.length === 0) {
-      setPasswordEmpty(true);
-    }
-    else {
-      setPasswordEmpty(false);
-    }
+  async componentDidMount() {
+    this._isMounted = true;
+    await this.getLocation();
   }
 
-  const onSuccess = () => {
-    props.navigation.navigate('ChatList');
+  componentWillUnmount() {
+    this._isMounted = false;
+    Geolocation.clearWatch();
+    Geolocation.stopObserving();
+  }
+
+  hasLocationPermission = async () => {
+    if (
+      Platform.OS === 'ios' ||
+      (Platform.OS === 'android' && Platform.Version < 23)
+    ) {
+      return true;
+    }
+    const hasPermission = await PermissionsAndroid.check(
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+    );
+    if (hasPermission) {
+      return true;
+    }
+    const status = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+    );
+    if (status === PermissionsAndroid.RESULTS.GRANTED) {
+      return true;
+    }
+    if (status === PermissionsAndroid.RESULTS.DENIED) {
+      ToastAndroid.show(
+        'Location Permission Denied By User.',
+        ToastAndroid.LONG,
+      );
+    } else if (status === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+      ToastAndroid.show(
+        'Location Permission Revoked By User.',
+        ToastAndroid.LONG,
+      );
+    }
+    return false;
   };
 
-  const onFailed = err => {
-    Alert.alert('Login Failed', err);
+  getLocation = async () => {
+    const hasLocationPermission = await this.hasLocationPermission();
+
+    if (!hasLocationPermission) {
+      return;
+    }
+
+    this.setState({ loading: true }, () => {
+      Geolocation.getCurrentPosition(
+        position => {
+          this.setState({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            loading: false,
+          });
+        },
+        error => {
+          this.setState({ errorMessage: error });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 8000,
+          distanceFilter: 50,
+          forceRequestLocation: true,
+        },
+      );
+    });
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={visibleModal}
-        onRequestClose={() => {
-          Alert.alert('Modal has been closed.');
-        }}
-      >
-        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)'}} >
-          <ActivityIndicator animating={true} size="xlarge" color="#117C6F" />
-        </View>
-      </Modal>
-      <View style={styles.root}>
-        <View style={styles.titleWrapper}>
-          <Text style={styles.title}>Login</Text>
-        </View>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Image source={require('../../assets/images/login.png')} style={styles.image} />
-          <View style={styles.formWrapper}>
-            <TextInput
-              label="E-mail"
-              mode="outlined"
-              theme={isEmailEmpty ? emptyTheme : inputTheme}
-              value={email}
-              style={styles.input}
-              keyboardType="email-address"
-              onChangeText={email => onChangeEmail(email)}
-            />
-            <View style={{ flex: 1, flexDirection: 'row' }}>
-              <TextInput
-                label="Password"
-                mode="outlined"
-                theme={isPasswordEmpty ? emptyTheme : inputTheme}
-                value={password}
-                secureTextEntry={!visiblePassword}
-                style={[styles.input, { flex: 1 }]}
-                onChangeText={pass => onChangePassword(pass)}
-              />
-              <Button
-                icon={!visiblePassword ? "eye" : "eye-off"}
-                theme={inputTheme}
-                style={styles.passwordVisibility}
-                compact
-                onPress={() => setVisiblePassword(!visiblePassword)}
-              />
-            </View>
-            <Button
-              style={styles.button}
-              theme={inputTheme}
-              uppercase
-              mode="contained"
-              onPress={onSubmit}
-              disabled={(isEmailEmpty || isPasswordEmpty) ? true : false}
-            >
-              login
-            </Button>
-            <Button
-              style={styles.button}
-              theme={inputTheme}
-              uppercase
-              mode="outlined"
-              onPress={() => props.navigation.replace('Register')}
-            >
-              register
-            </Button>
+  handleLogin = async () => {
+    const { email, password } = this.state;
+    if (email.length < 6) {
+      ToastAndroid.show(
+        'Please input a valid email address',
+        ToastAndroid.LONG,
+      );
+    } else if (password.length < 6) {
+      ToastAndroid.show(
+        'Password must be at least 6 characters',
+        ToastAndroid.LONG,
+      );
+    } else {
+      db().ref('users/')
+        .orderByChild('/email')
+        .equalTo(email)
+        .once('value', result => {
+          let data = result.val();
+          if (data !== null) {
+            let user = Object.values(data);
+
+            AsyncStorage.setItem('user.email', user[0].email);
+            AsyncStorage.setItem('user.name', user[0].name);
+            AsyncStorage.setItem('user.photo', user[0].photo);
+          }
+        });
+      login(email, password)
+        .then(async response => {
+          db().ref('users/' + response.user.uid).update({
+            status: 'Online',
+            latitude: this.state.latitude || null,
+            longitude: this.state.longitude || null,
+          });
+          // AsyncStorage.setItem('user', response.user);
+          await AsyncStorage.setItem('userid', response.user.uid);
+          // await AsyncStorage.setItem('user', response.user);
+          ToastAndroid.show('Login success', ToastAndroid.LONG);
+          await this.props.navigation.navigate('ChatList');
+        })
+        .catch(error => {
+          this.setState({
+            errorMessage: error.message,
+            email: '',
+            password: '',
+          });
+          ToastAndroid.show(this.state.errorMessage, ToastAndroid.LONG);
+        });
+    }
+  };
+
+  _toastWithDurationGravityOffsetHandler = () => {
+    //function to make Toast With Duration, Gravity And Offset
+    ToastAndroid.showWithGravityAndOffset(
+      `Hi, Welcome '${this.state.user.name}'`,
+      ToastAndroid.LONG, //can be SHORT, LONG
+      ToastAndroid.BOTTOM, //can be TOP, BOTTON, CENTER
+      25, //xOffset
+      50, //yOffset
+    );
+  };
+
+  handleChange = key => val => {
+    this.setState({ [key]: val });
+  };
+
+  render() {
+    return (
+      <SafeAreaView style={styles.safeArea} >
+        <View style={styles.root}>
+          <View style={styles.titleWrapper}>
+            <Text style={styles.title}>Login</Text>
           </View>
-        </ScrollView>
-      </View>
-    </SafeAreaView>
-  );
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Image source={require('../../assets/images/login.png')} style={styles.image} />
+            <View style={styles.formWrapper}>
+              <TextInput
+                label="E-mail"
+                mode="outlined"
+                theme={inputTheme}
+                value={this.state.email}
+                style={styles.input}
+                keyboardType="email-address"
+                onChangeText={this.handleChange('email')}
+              />
+              <View style={{ flex: 1, flexDirection: 'row' }}>
+                <TextInput
+                  label="Password"
+                  mode="outlined"
+                  theme={inputTheme}
+                  value={this.state.password}
+                  secureTextEntry={!this.state.visiblePassword}
+                  style={[styles.input, { flex: 1 }]}
+                  onChangeText={this.handleChange('password')}
+                />
+                <Button
+                  icon={!this.state.visiblePassword ? "eye" : "eye-off"}
+                  theme={inputTheme}
+                  style={styles.passwordVisibility}
+                  compact
+                  onPress={() => this.setState({ visiblePassword: !this.state.visiblePassword })}
+                />
+              </View>
+              <Button
+                style={styles.button}
+                theme={inputTheme}
+                uppercase
+                mode="contained"
+                onPress={this.handleLogin}
+              >
+                login
+            </Button>
+              <Button
+                style={styles.button}
+                theme={inputTheme}
+                uppercase
+                mode="outlined"
+                onPress={() => this.props.navigation.replace('Register')}
+              >
+                register
+            </Button>
+            </View>
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    );
+  }
 };
 
 export default Login;
