@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
-import { StyleSheet, View, ScrollView, Image } from 'react-native';
-import { Card, Text, TextInput, Button } from 'react-native-paper';
+import firebase from 'react-native-firebase';
+import { StyleSheet, View, ScrollView, Image, Modal, Alert } from 'react-native';
+import { Text, TextInput, Button, ActivityIndicator } from 'react-native-paper';
+import { login } from '../../config/initialize';
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -52,13 +54,82 @@ const inputTheme = {
   },
 };
 
+const emptyTheme = {
+  colors: {
+    primary: 'red',
+  },
+};
+
 const Login = (props) => {
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const [visiblePassword, setVisiblePassword] = useState(false);
+  const [visibleModal, setVisibleModal] = useState(false);
+  
+  const [isEmailEmpty, setEmailEmpty] = useState(true);
+  const [isPasswordEmpty, setPasswordEmpty] = useState(true);
+
+  const handleLogin = () => {
+    if(!isEmailEmpty && !isPasswordEmpty){
+      firebase
+      .auth()
+      .signInWithEmailAndPassword(email, password)
+      .then(() => onSuccess())
+      .catch(error => onFailed(error.message));
+    }
+    else {
+      Alert.alert('Login Message', 'Please Provide a Valid Data.');
+    }
+  };
+
+  const onChangeEmail = (e) => {
+    setEmail(e);
+    if(e.length === 0){
+      setEmailEmpty(true);
+    }
+    else {
+      setEmailEmpty(false);
+    }
+  }
+
+  const onChangePassword = (e) => {
+    setPassword(e);
+    if (e.length === 0) {
+      setPasswordEmpty(true);
+    }
+    else {
+      setPasswordEmpty(false);
+    }
+  }
+
+  const onSuccess = () => {
+    setVisibleModal(true);
+    setTimeout(() => {
+      setVisibleModal(false);
+      props.navigation.navigate('ChatList');
+    }, 1000);
+  };
+
+  const onFailed = err => {
+    Alert.alert('Login Failed', err);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={visibleModal}
+        onRequestClose={() => {
+          Alert.alert('Modal has been closed.');
+        }}
+      >
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)'}} >
+          <ActivityIndicator animating={true} size="xlarge" color="#117C6F" />
+        </View>
+      </Modal>
       <View style={styles.root}>
         <View style={styles.titleWrapper}>
           <Text style={styles.title}>Login</Text>
@@ -69,24 +140,24 @@ const Login = (props) => {
             <TextInput
               label="E-mail"
               mode="outlined"
-              theme={inputTheme}
+              theme={isEmailEmpty ? emptyTheme : inputTheme}
               value={email}
               style={styles.input}
               keyboardType="email-address"
-              onChangeText={email => setEmail(email)}
+              onChangeText={email => onChangeEmail(email)}
             />
-            <View style={{flex: 1, flexDirection: 'row'}}>
+            <View style={{ flex: 1, flexDirection: 'row' }}>
               <TextInput
                 label="Password"
                 mode="outlined"
-                theme={inputTheme}
+                theme={isPasswordEmpty ? emptyTheme : inputTheme}
                 value={password}
                 secureTextEntry={!visiblePassword}
-                style={[styles.input, {flex: 1}]}
-                onChangeText={pass => setPassword(pass)}
+                style={[styles.input, { flex: 1 }]}
+                onChangeText={pass => onChangePassword(pass)}
               />
               <Button
-                icon="lock"
+                icon={!visiblePassword ? "eye" : "eye-off"}
                 theme={inputTheme}
                 style={styles.passwordVisibility}
                 compact
@@ -98,20 +169,21 @@ const Login = (props) => {
               theme={inputTheme}
               uppercase
               mode="contained"
-              onPress={() => props.navigation.navigate('ChatList')}
+              onPress={handleLogin}
+              disabled={(isEmailEmpty || isPasswordEmpty) ? true : false}
             >
-            login
+              login
             </Button>
             <Button
               style={styles.button}
               theme={inputTheme}
               uppercase
               mode="outlined"
-              onPress={() => props.navigation.navigate('Register')}
+              onPress={() => props.navigation.replace('Register')}
             >
-            register
+              register
             </Button>
-         </View>
+          </View>
         </ScrollView>
       </View>
     </SafeAreaView>

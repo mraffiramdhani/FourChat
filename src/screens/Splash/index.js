@@ -5,6 +5,7 @@ import React, { useEffect } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import { StyleSheet, View, Image, Text } from 'react-native';
+import firebase from 'react-native-firebase';
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -28,9 +29,16 @@ const styles = StyleSheet.create({
 });
 
 const Splash = props => {
+
+  const { currentUser } = firebase.auth();
+
   useEffect(() => {
     setTimeout(() => {
-      props.navigation.navigate('UserAuth');
+      if(currentUser === null)
+        props.navigation.navigate('UserAuth');
+      else {
+        props.navigation.navigate('ChatList');
+      }
     }, 3000);
   }, [props.navigation]);
 
