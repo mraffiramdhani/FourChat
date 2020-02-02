@@ -74,12 +74,8 @@ class Profiles extends Component {
   async componentDidMount() {
     const name = await AsyncStorage.getItem('user.name');
     const email = await AsyncStorage.getItem('user.email');
-    const pic = await AsyncStorage.getItem('user.photo');
-    const profilePic = avatar('/' + pic);
-    this.setState({ email, name });
-    await profilePic.getDownloadURL().then(file => {
-      this.setState({ photo: { uri: file } });
-    });
+    const photo = await AsyncStorage.getItem('user.photo');
+    this.setState({ email, name, photo });
   }
 
   async signOutUser(props) {
@@ -105,7 +101,7 @@ class Profiles extends Component {
               <Avatar
                 rounded
                 size={120}
-                source={this.state.photo}
+                source={{ uri: this.state.photo }}
                 onEditPress={() => console.log('avatar clicked')}
                 showEditButton
               />

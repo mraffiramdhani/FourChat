@@ -33,9 +33,12 @@ export default class Chat extends Component {
     await db()
       .ref('messages/' + uid + '/friendList/' + person.uid)
       .on('child_added', async snapshot => {
-        this.setState(prevState => ({
-          messageList: GiftedChat.append(prevState.messageList, snapshot.val()),
-        }));
+        const valList = Object.values(snapshot.val());
+        valList.map((item, index) => {
+          this.setState(prevState => ({
+            messageList: GiftedChat.append(prevState.messageList, item),
+          }));
+        })
       });
   }
 
@@ -57,7 +60,7 @@ export default class Chat extends Component {
         user: {
           _id: this.state.uid,
           name: this.state.uname,
-          avatar: 'https://facebook.github.io/react/img/logo_og.png',
+          avatar: this.state.uavatar,
         },
       };
       updates[

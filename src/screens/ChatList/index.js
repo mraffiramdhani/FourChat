@@ -3,10 +3,10 @@ import React, { Component } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import AsyncStorage from '@react-native-community/async-storage';
+import firebase from 'react-native-firebase';
 import { StyleSheet, View, Text, FlatList, Modal, Alert, ActivityIndicator, ToastAndroid } from 'react-native';
 import { FAB, TextInput, Button } from 'react-native-paper';
 import { ListItem, Avatar, Card } from 'react-native-elements';
-import { db, setData, pushData, users, avatar } from '../../config/initialize';
 
 const styles = StyleSheet.create({
 	safeArea: { flex: 1 },
@@ -60,6 +60,7 @@ class ChatList extends Component {
 	constructor(props) {
 		super(props)
 		this.state = {
+			uid: null,
 			users: [],
 			visibleModal: false,
 			addEmail: '',
@@ -69,13 +70,13 @@ class ChatList extends Component {
 
 	async componentDidMount() {
 		const uid = await AsyncStorage.getItem('userid');
-		const dbRef = db().ref('messages/' + uid);
+		const dbRef = firebase.database().ref('messages/' + uid);
 		dbRef.on('child_added', async snapshot => {
 			let keyList = Object.keys(snapshot.val());
 			let valList = Object.values(snapshot.val());
 			await valList.map(async (item, index) => {
 				const friendKey = keyList[index];
-				await db().ref('users/' + friendKey).on('value', async item => {
+				await firebase.database().ref('users/' + friendKey).on('value', async item => {
 					let person = item.val();
 					this.setState(prevState => {
 						return {
@@ -94,7 +95,7 @@ class ChatList extends Component {
 				onPress={() => this.props.navigation.navigate('Chat', { person: item })}
 				title={`${item.name}`}
 				subtitle={item.email}
-				leftAvatar={{ source: { uri: 'https://raw.githubusercontent.com/FaridSafi/react-native-gifted-chat/sponsor-lereacteur/media/logo_sponsor.png' } }}
+				leftAvatar={{ source: { uri: item.photo } }}
 				containerStyle={{ borderBottomWidth: 0 }}
 				bottomDivider
 				topDivider
@@ -103,15 +104,17 @@ class ChatList extends Component {
 	};
 
 	onSubmitFriend = () => {
-		db()
+		firebase.database()
 			.ref('users')
 			.once('value')
 			.then(async snapshot => {
 				const uid = await AsyncStorage.getItem('userid');
+				const uname = await AsyncStorage.getItem('user.name');
+				const uavatar = await AsyncStorage.getItem('user.photo');
 				const db_users = await Object.values(snapshot.val());
 				const friend = await db_users.find(item => item.email === this.state.addEmail);
 				if (friend.uid !== undefined) {
-					db()
+					firebase.database()
 						.ref(`messages/${uid}`)
 						.once('value', async snapshot => {
 							if ('friendList' in snapshot.val()) {
@@ -125,8 +128,6 @@ class ChatList extends Component {
 										{ cancelable: false }
 									);
 								} else {
-									await setData(`messages/${uid}/friendList/${friend.uid}`, { data: true });
-
 									Alert.alert(
 										'Add Friend Success',
 										'Congratulation, Say Hi! to your new friend ?',
@@ -138,21 +139,45 @@ class ChatList extends Component {
 											{
 												text: 'Send',
 												onPress: async () => {
-													await pushData(`messages/${uid}/friendList/${friend.uid}/data`, {
-														incoming: false,
-														message: 'Hi! >_<',
-														createdAt: Date.parse(new Date()),
-													});
-
-													await setData(`messages/${friend.uid}/friendList/${uid}`, {
-														data: true,
-													});
-
-													await pushData(`messages/${friend.uid}/friendList/${uid}/data`, {
-														incoming: true,
-														message: 'Hi! >_<',
-														createdAt: Date.parse(new Date()),
-													});
+													let msgId = firebase
+														.database()
+														.ref('messages')
+														.child(uid)
+														.child('friendList')
+														.child(friend.uid)
+														.child('data')
+														.push().key;
+													let updates = {};
+													let message = {
+														_id: msgId,
+														text: 'Hi! >_<',
+														createdAt: firebase.database.ServerValue.TIMESTAMP,
+														user: {
+															_id: uid,
+															name: uname,
+															avatar: uavatar,
+														},
+													};
+													updates[
+														'messages/' +
+														uid +
+														'/friendList/' +
+														friend.uid +
+														'/data/' +
+														msgId
+													] = message;
+													updates[
+														'messages/' +
+														friend.uid +
+														'/friendList/' +
+														uid +
+														'/data/' +
+														msgId
+													] = message;
+													firebase
+														.database()
+														.ref()
+														.update(updates);
 												},
 											},
 										],
@@ -160,10 +185,6 @@ class ChatList extends Component {
 									);
 								}
 							} else {
-								await setData(`messages/${uid}/friendList/${friend.uid}`, {
-									data: true,
-								});
-
 								Alert.alert(
 									'Add Friend Success',
 									'Congratulation, Say Hi! to your new friend ?',
@@ -175,21 +196,45 @@ class ChatList extends Component {
 										{
 											text: 'Send',
 											onPress: async () => {
-												await pushData(`messages/${uid}/friendList/${friend.uid}/data`, {
-													incoming: false,
-													message: 'Hi! >_<',
-													createdAt: Date.parse(new Date()),
-												});
-
-												await setData(`messages/${friend.uid}/friendList/${uid}`, {
-													data: true,
-												});
-
-												await pushData(`messages/${friend.uid}/friendList/${uid}/data`, {
-													incoming: true,
-													message: 'Hi! >_<',
-													createdAt: Date.parse(new Date()),
-												});
+												let msgId = firebase
+													.database()
+													.ref('messages')
+													.child(uid)
+													.child('friendList')
+													.child(friend.uid)
+													.child('data')
+													.push().key;
+												let updates = {};
+												let message = {
+													_id: msgId,
+													text: 'Hi! >_<',
+													createdAt: firebase.database.ServerValue.TIMESTAMP,
+													user: {
+														_id: uid,
+														name: uname,
+														avatar: uavatar,
+													},
+												};
+												updates[
+													'messages/' +
+													uid +
+													'/friendList/' +
+													friend.uid +
+													'/data/' +
+													msgId
+												] = message;
+												updates[
+													'messages/' +
+													friend.uid +
+													'/friendList/' +
+													uid +
+													'/data/' +
+													msgId
+												] = message;
+												firebase
+													.database()
+													.ref()
+													.update(updates);
 											},
 										},
 									],
