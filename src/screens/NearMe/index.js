@@ -133,10 +133,10 @@ class NearMe extends Component {
         }}
       >
         {
-          this.state.userList.map(item => {
+          this.state.userList.map((item, index) => {
             return (
               <Marker
-                key={item.uid}
+                key={index}
                 title={item.name}
                 description={item.status}
                 draggable

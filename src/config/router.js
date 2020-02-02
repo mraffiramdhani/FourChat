@@ -12,6 +12,7 @@ import ChatList from '../screens/ChatList';
 import Profile from '../screens/Profile';
 import DetailUser from '../screens/Profile/DetailUser';
 import NearMe from '../screens/NearMe';
+import Chat from '../screens/Chat';
 
 const AuthStack = createStackNavigator(
   {
@@ -41,11 +42,29 @@ const ChatStack = createStackNavigator(
         headerShown: false,
       },
     },
+    Chat: {
+      screen: Chat,
+      navigationOptions: {
+        headerShown: false,
+      },
+    },
   },
   {
     initialRouteName: 'ChatList',
   }
 );
+
+ChatStack.navigationOptions = ({ navigation }) => {
+  let tabBarVisible = true;
+  if (navigation.state.index > 0) {
+    tabBarVisible = false;
+  }
+
+  return {
+    tabBarVisible,
+  }
+}
+
 
 const MapStack = createStackNavigator(
   {
@@ -55,11 +74,29 @@ const MapStack = createStackNavigator(
         headerShown: false,
       },
     },
+    Chat: {
+      screen: Chat,
+      navigationOptions: {
+        headerShown: false,
+      },
+    },
   },
   {
     initialRouteName: 'NearMe',
   }
 );
+
+MapStack.navigationOptions = ({ navigation }) => {
+  let tabBarVisible = true;
+  if (navigation.state.index > 0) {
+    tabBarVisible = false;
+  }
+
+  return {
+    tabBarVisible,
+  }
+}
+
 
 const ProfileStack = createStackNavigator(
   {
@@ -80,6 +117,18 @@ const ProfileStack = createStackNavigator(
     initialRouteName: 'Profile',
   }
 );
+
+ProfileStack.navigationOptions = ({ navigation }) => {
+  let tabBarVisible = true;
+  if (navigation.state.index > 0) {
+    tabBarVisible = false;
+  }
+
+  return {
+    tabBarVisible,
+  }
+}
+
 
 const BottomNav = createBottomTabNavigator(
   {

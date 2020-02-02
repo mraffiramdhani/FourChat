@@ -34,7 +34,7 @@ const Splash = props => {
 
   useEffect(() => {
     setTimeout(() => {
-      if(currentUser === null)
+      if (currentUser === null)
         props.navigation.navigate('UserAuth');
       else {
         props.navigation.navigate('ChatList');

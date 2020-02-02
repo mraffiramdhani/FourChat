@@ -2,6 +2,7 @@ import React, { Component } from 'react'
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import Geolocation from 'react-native-geolocation-service';
+import AsyncStorage from '@react-native-community/async-storage';
 import { StyleSheet, View, Text, Image, ScrollView, Platform, PermissionsAndroid, ToastAndroid } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { signup, db } from '../../config/initialize';
@@ -123,13 +124,12 @@ class Register extends Component {
 
 		this.setState({ loading: true }, () => {
 			Geolocation.getCurrentPosition(
-				position => {
-					this.setState({
+				async position => {
+					await this.setState({
 						latitude: position.coords.latitude,
 						longitude: position.coords.longitude,
 						loading: false,
 					});
-					// console.warn(position);
 				},
 				error => {
 					this.setState({ errorMessage: error, loading: false });
@@ -166,12 +166,11 @@ class Register extends Component {
 			);
 		} else {
 			signup(email, password)
-				.then(response => {
-					// console.warn(response);
+				.then(async response => {
 					db().ref('users/' + response.user.uid)
 						.set({
 							name: this.state.name,
-							status: 'Offline',
+							status: 'Online',
 							email: this.state.email,
 							photo: 'avatar/default.png',
 							latitude: this.state.latitude,
@@ -186,12 +185,29 @@ class Register extends Component {
 								password: '',
 							});
 						});
+					db().ref('messages/' + response.user.uid)
+						.set({
+							isRegister: true,
+						})
+						.catch((error) => {
+							ToastAndroid.show(error.message, ToastAndroid.LONG);
+							this.setState({
+								name: '',
+								email: '',
+								password: '',
+							});
+						})
+					AsyncStorage.setItem('user.email', this.state.email);
+					AsyncStorage.setItem('user.name', this.state.name);
+					AsyncStorage.setItem('user.photo', 'avatar/default.png');
 					ToastAndroid.show(
 						'Your account is successfully registered!',
 						ToastAndroid.LONG,
 					);
 
-					this.props.navigation.navigate('ChatList');
+					// AsyncStorage.setItem('user', response.user);
+					await AsyncStorage.setItem('userid', response.user.uid);
+					await this.props.navigation.navigate('ChatList');
 				})
 				.catch(error => {
 					this.setState({
