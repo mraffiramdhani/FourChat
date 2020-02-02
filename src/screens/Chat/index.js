@@ -6,6 +6,7 @@ import normalize from 'react-native-normalize';
 import { StyleSheet, Text, View } from 'react-native'
 import { GiftedChat, Bubble, Send } from 'react-native-gifted-chat';
 import { db } from '../../config/initialize';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -14,11 +15,11 @@ const styles = StyleSheet.create({
     height: normalize(50, 'height'),
     width: '100%',
     backgroundColor: '#117C6F',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 18,
     fontFamily: 'Nunito-Bold',
     color: 'white',
   },
@@ -128,7 +129,7 @@ export default class Chat extends Component {
   renderSend(props) {
     return (
       <Send {...props}>
-        <Text>Send</Text>
+        <Icon name="send-circle" style={{ color: '#117C6F' }} size={45} />
       </Send>
     );
   };
@@ -147,7 +148,8 @@ export default class Chat extends Component {
       <SafeAreaView style={styles.safeArea}>
         <View style={{ flex: 1 }}>
           <View style={styles.headerWrapper}>
-            <Text style={styles.title}>{this.truncate(this.state.person.name, 15)}</Text>
+            <Icon name="keyboard-backspace" style={{ color: 'white', marginHorizontal: 10 }} size={30} onPress={() => this.props.navigation.goBack()} />
+            <Text style={styles.title}>{this.truncate(this.state.person.name, 25)}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <GiftedChat

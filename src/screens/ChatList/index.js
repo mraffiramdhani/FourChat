@@ -68,9 +68,16 @@ class ChatList extends Component {
 		}
 	}
 
+	_isMounted = false;
+
 	async componentDidMount() {
+		this._isMounted = true;
 		const uid = await AsyncStorage.getItem('userid');
-		const dbRef = firebase.database().ref('messages/' + uid + '/');
+		this.setState({ uid });
+		const dbRef = firebase
+			.database()
+			.ref('messages')
+			.child(uid);
 		dbRef.on('child_added', async snapshot => {
 			let keyList = Object.keys(snapshot.val());
 			let valList = Object.values(snapshot.val());
@@ -88,6 +95,11 @@ class ChatList extends Component {
 		});
 		await this.setState({ isLoading: false });
 	};
+
+	componentWillMount() {
+		firebase.database().ref('messages/' + this.state.uid).off('child_added');
+		this._isMounted = false;
+	}
 
 	renderRow = (item) => {
 		return (
@@ -113,7 +125,16 @@ class ChatList extends Component {
 				const uavatar = await AsyncStorage.getItem('user.photo');
 				const db_users = await Object.values(snapshot.val());
 				const friend = await db_users.find(item => item.email === this.state.addEmail);
-				if (friend.uid !== undefined) {
+				// if (fKey !== undefined) {
+				// 	Alert.alert(
+				// 		'Add Friend Message',
+				// 		'You Cannot Add Yourself to Your Friend List.',
+				// 		[{ text: 'OK', style: 'cancel', onPress: () => this.setState({ addEmail: '', visibleModal: false }) }],
+				// 		{ cancelable: false }
+				// 	);
+				// }
+				// else {
+				if (friend.uid !== undefined && friend.uid !== uid) {
 					firebase.database()
 						.ref(`messages/${uid}`)
 						.once('value', async snapshot => {
@@ -124,10 +145,11 @@ class ChatList extends Component {
 									Alert.alert(
 										'Add Friend Message',
 										'You are already friend with this person.',
-										[{ text: 'OK', style: 'cancel' }],
+										[{ text: 'OK', style: 'cancel', onPress: () => this.setState({ addEmail: '', visibleModal: false }) }],
 										{ cancelable: false }
 									);
-								} else {
+								}
+								else {
 									Alert.alert(
 										'Add Friend Success',
 										'Congratulation, Say Hi! to your new friend ?',
@@ -142,8 +164,8 @@ class ChatList extends Component {
 														.child(uid)
 														.child('friendList')
 														.child(friend.uid)
-														.set({ data: '' });
-													this.setState({ email: '', visibleModal: false });
+														.set({ data: true });
+													this.setState({ addEmail: '', visibleModal: false });
 												}
 											},
 											{
@@ -188,7 +210,7 @@ class ChatList extends Component {
 														.database()
 														.ref()
 														.update(updates);
-													this.setState({ email: '', visibleModal: false });
+													this.setState({ addEmail: '', visibleModal: false });
 												},
 											},
 										],
@@ -210,8 +232,8 @@ class ChatList extends Component {
 													.child(uid)
 													.child('friendList')
 													.child(friend.uid)
-													.set({ data: '' });
-												this.setState({ email: '', visibleModal: false });
+													.set({ data: true });
+												this.setState({ addEmail: '', visibleModal: false });
 											}
 										},
 										{
@@ -256,7 +278,7 @@ class ChatList extends Component {
 													.database()
 													.ref()
 													.update(updates);
-												this.setState({ email: '', visibleModal: false });
+												this.setState({ addEmail: '', visibleModal: false });
 											},
 										},
 									],
@@ -265,9 +287,19 @@ class ChatList extends Component {
 							}
 						})
 						.catch(error => Alert.alert('Add Friend Error', error));
-				} else {
+				}
+				else if (friend.uid === uid) {
+					Alert.alert(
+						'Add Friend Message',
+						'You Cannot Add Yourself to Your Friend List.',
+						[{ text: 'OK', style: 'cancel', onPress: () => this.setState({ addEmail: '', visibleModal: false }) }],
+						{ cancelable: false }
+					);
+				}
+				else {
 					Alert.alert('Add Friend Error.', 'Server Error.');
 				}
+				// }
 			})
 			.catch(error => console.log(error));
 	};
