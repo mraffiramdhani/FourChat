@@ -147,7 +147,7 @@ class NearMe extends Component {
               >
                 <View style={{ alignItems: 'center' }}>
                   <Image
-                    source={require('../../assets/images/default.png')}
+                    source={{ uri: item.photo }}
                     style={{ width: 60, height: 60, borderRadius: 50 }}
                   />
                   <Text>{item.name}</Text>

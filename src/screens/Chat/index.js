@@ -38,19 +38,33 @@ export default class Chat extends Component {
     }
   }
 
+  _isMounted = false;
+
   async componentDidMount() {
+    this._isMounted = true;
     const uid = await AsyncStorage.getItem('userid');
     const uname = await AsyncStorage.getItem('user.name');
     const uavatar = await AsyncStorage.getItem('user.photo');
     const person = this.props.navigation.getParam('person');
     this.setState({ uid, uname, uavatar, person });
-    await db()
-      .ref('messages/' + uid + '/friendList/' + person.uid + '/data/')
-      .on('child_added', async snapshot => {
+    let msgData = null;
+    if (this._isMounted) {
+      msgData = db().ref('messages/' + uid + '/friendList/' + person.uid + '/data/');
+
+      msgData.on('child_added', async snapshot => {
         this.setState(prevState => ({
           messageList: GiftedChat.append(prevState.messageList, snapshot.val()),
         }));
       });
+    }
+    else {
+      db().ref('messages/' + uid + '/friendList/' + person.uid + '/data/').off("child_added");
+    }
+  }
+
+  componentWillUnmount() {
+    db().ref('messages/' + this.state.uid + '/friendList/' + this.state.person.uid + '/data/').off("child_added");
+    this._isMounted = false;
   }
 
   onSend = async () => {
