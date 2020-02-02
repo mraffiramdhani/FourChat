@@ -43,6 +43,14 @@ const styles = StyleSheet.create({
 		padding: 5,
 		backgroundColor: '#117C6F',
 	},
+	refresh: {
+		position: 'absolute',
+		margin: 16,
+		left: 0,
+		bottom: 0,
+		padding: 5,
+		backgroundColor: '#FFFFFF',
+	},
 	cardWrapper: {
 		flex: 1,
 		justifyContent: 'center',
@@ -63,43 +71,57 @@ class ChatList extends Component {
 			uid: null,
 			users: [],
 			visibleModal: false,
+			visibleFriendModal: false,
 			addEmail: '',
 			isLoading: true,
 		}
 	}
 
-	_isMounted = false;
-
 	async componentDidMount() {
-		this._isMounted = true;
 		const uid = await AsyncStorage.getItem('userid');
 		this.setState({ uid });
-		const dbRef = firebase
-			.database()
-			.ref('messages')
-			.child(uid);
-		dbRef.on('child_added', async snapshot => {
-			let keyList = Object.keys(snapshot.val());
-			let valList = Object.values(snapshot.val());
-			await valList.map(async (item, index) => {
-				const friendKey = keyList[index];
-				await firebase.database().ref('users/' + friendKey).on('value', async item => {
-					let person = item.val();
-					this.setState(prevState => {
-						return {
-							users: [...prevState.users, person],
-						};
+		const dbRef = firebase.database().ref('messages/' + uid + '/friendList/');
+		firebase.database().ref('messages/' + uid + '/').on('child_added', async snapshot => {
+			console.log('added', snapshot.val());
+			if (snapshot.val() !== null) {
+				let keyList = Object.keys(snapshot.val());
+				let valList = Object.values(snapshot.val());
+				console.log(keyList, valList);
+				await valList.map(async (item, index) => {
+					const friendKey = keyList[index];
+					console.log(friendKey);
+					await firebase.database().ref('users/' + friendKey).once('value', async item => {
+						let person = item.val();
+						console.log(person);
+						this.setState(prevState => {
+							return {
+								users: [...prevState.users, person],
+							};
+						});
 					});
+				});
+			}
+		});
+
+		dbRef.on('child_changed', async snapshot => {
+			console.log('updated', snapshot);
+			let valList = Object.values(snapshot);
+			await firebase.database().ref('users/' + valList[0]).once('value', async item => {
+				let person = item.val();
+				this.setState(prevState => {
+					return {
+						users: prevState.users.map(user => {
+							if (user.uid === person.uid) {
+								user = person;
+							}
+							return user;
+						})
+					};
 				});
 			});
 		});
 		await this.setState({ isLoading: false });
 	};
-
-	componentWillMount() {
-		firebase.database().ref('messages/' + this.state.uid).off('child_added');
-		this._isMounted = false;
-	}
 
 	renderRow = (item) => {
 		return (
@@ -107,13 +129,43 @@ class ChatList extends Component {
 				onPress={() => this.props.navigation.navigate('Chat', { person: item })}
 				title={`${item.name}`}
 				subtitle={item.email}
-				leftAvatar={{ source: { uri: item.photo } }}
+				leftAvatar={{ source: { uri: item.photo }, size: 'large', onPress: () => { this.setState({ visibleFriendModal: true }) } }}
 				containerStyle={{ borderBottomWidth: 0 }}
 				bottomDivider
 				topDivider
 			/>
 		);
 	};
+
+	onRefresh = () => {
+		const dbRef = firebase.database().ref('messages/' + this.state.uid + '/friendList/');
+		dbRef.on('value', async snapshot => {
+			console.log('refreshed', snapshot.val());
+			if (snapshot.val() !== null) {
+				let keyList = Object.keys(snapshot.val());
+				let valList = Object.values(snapshot.val());
+				console.log(keyList, valList);
+				await valList.map(async (item, index) => {
+					const friendKey = keyList[index];
+					console.log(friendKey);
+					await firebase.database().ref('users/' + friendKey).once('value', async item => {
+						let person = item.val();
+						console.log(person);
+						this.setState(prevState => {
+							return {
+								users: prevState.users.map(user => {
+									if (user.uid === person.uid) {
+										user = person;
+									}
+									return user;
+								})
+							};
+						});
+					});
+				});
+			}
+		});
+	}
 
 	onSubmitFriend = () => {
 		firebase.database()
@@ -154,20 +206,20 @@ class ChatList extends Component {
 										'Add Friend Success',
 										'Congratulation, Say Hi! to your new friend ?',
 										[
-											{
-												text: 'Skip',
-												style: 'cancel',
-												onPress: async () => {
-													firebase
-														.database()
-														.ref('messages')
-														.child(uid)
-														.child('friendList')
-														.child(friend.uid)
-														.set({ data: true });
-													this.setState({ addEmail: '', visibleModal: false });
-												}
-											},
+											// {
+											// 	text: 'Skip',
+											// 	style: 'cancel',
+											// 	onPress: async () => {
+											// 		firebase
+											// 			.database()
+											// 			.ref('messages')
+											// 			.child(uid)
+											// 			.child('friendList')
+											// 			.child(friend.uid)
+											// 			.set({ data: true });
+											// 		this.setState({ addEmail: '', visibleModal: false });
+											// 	}
+											// },
 											{
 												text: 'Send',
 												onPress: async () => {
@@ -222,20 +274,20 @@ class ChatList extends Component {
 									'Add Friend Success',
 									'Congratulation, Say Hi! to your new friend ?',
 									[
-										{
-											text: 'Skip',
-											style: 'cancel',
-											onPress: async () => {
-												firebase
-													.database()
-													.ref('messages')
-													.child(uid)
-													.child('friendList')
-													.child(friend.uid)
-													.set({ data: true });
-												this.setState({ addEmail: '', visibleModal: false });
-											}
-										},
+										// {
+										// 	text: 'Skip',
+										// 	style: 'cancel',
+										// 	onPress: async () => {
+										// 		firebase
+										// 			.database()
+										// 			.ref('messages')
+										// 			.child(uid)
+										// 			.child('friendList')
+										// 			.child(friend.uid)
+										// 			.set({ data: true });
+										// 		this.setState({ addEmail: '', visibleModal: false });
+										// 	}
+										// },
 										{
 											text: 'Send',
 											onPress: async () => {
@@ -337,6 +389,36 @@ class ChatList extends Component {
 						</Card>
 					</View>
 				</Modal>
+				<Modal
+					animationType="fade"
+					transparent
+					visible={this.state.visibleFriendModal}
+					onRequestClose={() => {
+						this.setState({ visibleFriendModal: false });
+					}}
+				>
+					<View style={styles.cardWrapper}>
+						<Card title="Add Friend" containerStyle={styles.card}>
+							<TextInput
+								mode="outlined"
+								theme={{ colors: { primary: '#117C6F' } }}
+								label="Email"
+								keyboardType="email-address"
+								value={this.state.addEmail}
+								onChangeText={e => this.setState({ addEmail: e })}
+							/>
+							<Button
+								style={{ marginTop: 10 }}
+								mode="contained"
+								theme={{ colors: { primary: '#117C6F' } }}
+								uppercase
+								onPress={this.onSubmitFriend}
+							>
+								add
+            </Button>
+						</Card>
+					</View>
+				</Modal>
 				<View style={styles.root}>
 					<View style={styles.headerWrapper}>
 						<Text style={styles.title}>Conversation</Text>
@@ -368,6 +450,12 @@ class ChatList extends Component {
 						small
 						icon="message-plus"
 						onPress={() => this.setState({ visibleModal: true })}
+					/>
+					<FAB
+						style={styles.refresh}
+						small
+						icon="reload"
+						onPress={() => this.onRefresh()}
 					/>
 				</View>
 			</SafeAreaView>
