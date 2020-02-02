@@ -3,10 +3,12 @@ import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import firebase from 'react-native-firebase';
 import AsyncStorage from '@react-native-community/async-storage';
-import { StyleSheet, View, Text, ScrollView, Alert, Modal, ActivityIndicator, ToastAndroid } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Alert, Modal, ActivityIndicator, PermissionsAndroid, Platform, ToastAndroid } from 'react-native';
 import { Avatar, ListItem } from 'react-native-elements';
 import { db, setData, users, avatar } from '../../config/initialize';
 import { withNavigation } from 'react-navigation';
+import RNFetchBlob from 'rn-fetch-blob';
+import ImagePicker from 'react-native-image-picker';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -72,10 +74,11 @@ class Profiles extends Component {
   }
 
   async componentDidMount() {
+    const userId = await AsyncStorage.getItem('userid');
     const name = await AsyncStorage.getItem('user.name');
     const email = await AsyncStorage.getItem('user.email');
     const photo = await AsyncStorage.getItem('user.photo');
-    this.setState({ email, name, photo });
+    this.setState({ userId, email, name, photo });
   }
 
   async signOutUser(props) {
@@ -87,6 +90,76 @@ class Profiles extends Component {
       props.navigation.navigate('Login');
     })
   }
+
+  requestCameraPermission = async () => {
+    try {
+      const granted = await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.CAMERA,
+        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+      ]);
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    catch (error) {
+      console.warn(err);
+      return false;
+    }
+  }
+
+  updateProfilePic = async () => {
+    const Blob = RNFetchBlob.polyfill.Blob;
+    const fs = RNFetchBlob.fs;
+    window.XMLHttpRequest = RNFetchBlob.polyfill.XMLHttpRequest;
+    window.Blob = Blob;
+
+    const options = {
+      title: 'Select Avatar',
+      storageOptions: {
+        skipBackup: true,
+        path: 'images',
+      },
+      mediaType: 'photo',
+    };
+
+    let cameraPermission =
+      (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA)) &&
+      PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+      ) &&
+      PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+      );
+    if (!cameraPermission) {
+      cameraPermission = await this.requestCameraPermission();
+    } else {
+      ImagePicker.showImagePicker(options, response => {
+        if (response.didCancel) {
+          ToastAndroid.show('You cancelled image picker', ToastAndroid.LONG);
+        } else if (response.error) {
+          ToastAndroid.show(response.error, ToastAndroid.LONG);
+        } else if (response.customButton) {
+          console.log('User tapped custom button: ', response.customButton);
+        } else {
+          ToastAndroid.show('loading...', ToastAndroid.LONG);
+          const imageRef = firebase
+            .storage()
+            .ref('avatar/' + this.state.userId)
+            .child('photo');
+          imageRef
+            .putFile(response.path)
+            .then(data => {
+              ToastAndroid.show('Upload success', ToastAndroid.LONG);
+              firebase
+                .database()
+                .ref('users/' + this.state.userId)
+                .update({ photo: data.downloadURL });
+              this.setState({ photo: data.downloadURL });
+              AsyncStorage.setItem('user.photo', this.state.photo);
+            }).catch(err => console.log(err));
+        }
+      });
+    }
+  };
 
   truncate = (source, size) => {
     return source.length > size ? source.slice(0, size - 1) + "…" : source;
@@ -102,7 +175,7 @@ class Profiles extends Component {
                 rounded
                 size={120}
                 source={{ uri: this.state.photo }}
-                onEditPress={() => console.log('avatar clicked')}
+                onEditPress={() => this.updateProfilePic()}
                 showEditButton
               />
             </View>

@@ -70,7 +70,7 @@ class ChatList extends Component {
 
 	async componentDidMount() {
 		const uid = await AsyncStorage.getItem('userid');
-		const dbRef = firebase.database().ref('messages/' + uid);
+		const dbRef = firebase.database().ref('messages/' + uid + '/');
 		dbRef.on('child_added', async snapshot => {
 			let keyList = Object.keys(snapshot.val());
 			let valList = Object.values(snapshot.val());
@@ -135,6 +135,16 @@ class ChatList extends Component {
 											{
 												text: 'Skip',
 												style: 'cancel',
+												onPress: async () => {
+													firebase
+														.database()
+														.ref('messages')
+														.child(uid)
+														.child('friendList')
+														.child(friend.uid)
+														.set({ data: '' });
+													this.setState({ email: '', visibleModal: false });
+												}
 											},
 											{
 												text: 'Send',
@@ -178,6 +188,7 @@ class ChatList extends Component {
 														.database()
 														.ref()
 														.update(updates);
+													this.setState({ email: '', visibleModal: false });
 												},
 											},
 										],
@@ -192,6 +203,16 @@ class ChatList extends Component {
 										{
 											text: 'Skip',
 											style: 'cancel',
+											onPress: async () => {
+												firebase
+													.database()
+													.ref('messages')
+													.child(uid)
+													.child('friendList')
+													.child(friend.uid)
+													.set({ data: '' });
+												this.setState({ email: '', visibleModal: false });
+											}
 										},
 										{
 											text: 'Send',
@@ -235,6 +256,7 @@ class ChatList extends Component {
 													.database()
 													.ref()
 													.update(updates);
+												this.setState({ email: '', visibleModal: false });
 											},
 										},
 									],

@@ -2,12 +2,26 @@ import React, { Component } from 'react'
 import SafeAreaView from 'react-native-safe-area-view';
 import AsyncStorage from '@react-native-community/async-storage';
 import firebase from 'react-native-firebase';
+import normalize from 'react-native-normalize';
 import { StyleSheet, Text, View } from 'react-native'
 import { GiftedChat, Bubble, Send } from 'react-native-gifted-chat';
 import { db } from '../../config/initialize';
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 }
+  safeArea: { flex: 1 },
+  headerWrapper: {
+    flexDirection: 'row',
+    height: normalize(50, 'height'),
+    width: '100%',
+    backgroundColor: '#117C6F',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontFamily: 'Nunito-Bold',
+    color: 'white',
+  },
 })
 
 export default class Chat extends Component {
@@ -31,14 +45,11 @@ export default class Chat extends Component {
     const person = this.props.navigation.getParam('person');
     this.setState({ uid, uname, uavatar, person });
     await db()
-      .ref('messages/' + uid + '/friendList/' + person.uid)
+      .ref('messages/' + uid + '/friendList/' + person.uid + '/data/')
       .on('child_added', async snapshot => {
-        const valList = Object.values(snapshot.val());
-        valList.map((item, index) => {
-          this.setState(prevState => ({
-            messageList: GiftedChat.append(prevState.messageList, item),
-          }));
-        })
+        this.setState(prevState => ({
+          messageList: GiftedChat.append(prevState.messageList, snapshot.val()),
+        }));
       });
   }
 
@@ -93,7 +104,7 @@ export default class Chat extends Component {
         {...props}
         wrapperStyle={{
           left: {
-            backgroundColor: 'blue',
+            backgroundColor: '#ddd',
           },
         }}
       />
@@ -108,11 +119,22 @@ export default class Chat extends Component {
     );
   };
 
+  truncate = (source, size) => {
+    if (source !== null && source !== undefined && source !== '') {
+      return source.length > size ? source.slice(0, size - 1) + "…" : source;
+    }
+    else {
+      return 'Loading…'
+    }
+  }
+
   render() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={{ flex: 1 }}>
-          <Text>{this.state.person.name}</Text>
+          <View style={styles.headerWrapper}>
+            <Text style={styles.title}>{this.truncate(this.state.person.name, 15)}</Text>
+          </View>
           <View style={{ flex: 1 }}>
             <GiftedChat
               renderSend={this.renderSend}

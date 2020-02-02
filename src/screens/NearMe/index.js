@@ -145,10 +145,10 @@ class NearMe extends Component {
                   longitude: item.longitude || 0,
                 }}
               >
-                <View>
+                <View style={{ alignItems: 'center' }}>
                   <Image
                     source={require('../../assets/images/default.png')}
-                    style={{ width: 40, height: 40 }}
+                    style={{ width: 60, height: 60, borderRadius: 50 }}
                   />
                   <Text>{item.name}</Text>
                 </View>
