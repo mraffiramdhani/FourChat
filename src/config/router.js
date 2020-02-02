@@ -11,6 +11,7 @@ import Register from '../screens/Register';
 import ChatList from '../screens/ChatList';
 import Profile from '../screens/Profile';
 import DetailUser from '../screens/Profile/DetailUser';
+import NearMe from '../screens/NearMe';
 
 const AuthStack = createStackNavigator(
   {
@@ -46,6 +47,20 @@ const ChatStack = createStackNavigator(
   }
 );
 
+const MapStack = createStackNavigator(
+  {
+    NearMe: {
+      screen: NearMe,
+      navigationOptions: {
+        headerShown: false,
+      },
+    },
+  },
+  {
+    initialRouteName: 'NearMe',
+  }
+);
+
 const ProfileStack = createStackNavigator(
   {
     Profile: {
@@ -75,6 +90,15 @@ const BottomNav = createBottomTabNavigator(
           return <Icon name="ios-chatbubbles" size={25} color={tintColor} />;
         },
       },
+    },
+    NearMe: {
+      screen: MapStack,
+      navigationOptions: {
+        title: 'Near Me',
+        tabBarIcon: ({ tintColor }) => {
+          return <Icon name="md-map" size={25} color={tintColor} />;
+        },
+      }
     },
     Profile: {
       screen: ProfileStack,

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { Component } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import firebase from 'react-native-firebase';
-import { StyleSheet, View, Text, ScrollView, Alert, Modal, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-community/async-storage';
+import { StyleSheet, View, Text, ScrollView, Alert, Modal, ActivityIndicator, ToastAndroid } from 'react-native';
 import { Avatar, ListItem } from 'react-native-elements';
-import { db, setData, users } from '../../config/initialize';
+import { db, setData, users, avatar } from '../../config/initialize';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -49,86 +50,85 @@ const styles = StyleSheet.create({
   }
 });
 
-const Profile = (props) => {
+class Profile extends Component {
 
-  const [uid, setUID] = useState(null);
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [photo, setPhoto] = useState(null);
-
-  const [isLoading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
-    const user = users().currentUser;
-    if(user){
-      await db().ref('users/' + user.uid).on('value', async snapshot => {
-        setLoading(false);
-        setUID(snapshot.val().uid);
-        setEmail(snapshot.val().email);
-        setName(snapshot.val().name);
-        const avatarURI = firebase.storage().ref('/' + snapshot.val().photo);
-        await avatarURI.getDownloadURL().then(file => {
-          setPhoto({ uri: file });
-        });
-      });
-    }
-    else{
-      await props.navigation.replace('Login');
+  constructor(props) {
+    super(props);
+    this.state = {
+      userId: null,
+      permissionsGranted: null,
+      errorMessage: null,
+      loading: false,
+      updatesEnabled: false,
+      location: {},
+      photo: null,
+      imageUri: null,
+      imgSource: '',
+      uploading: false,
+      name: '',
+      email: '',
     }
   }
 
-  const signOutUser = async () => {
-    setLoading(true);
-    users().signOut().then(async (result) => {
-      setLoading(false);
-      setUID(null);
-      setEmail('');
-      await props.navigation.navigate('Login');
-    }).catch((error) => {
-      Alert.alert('Logout Failed', error.message);
+  async componentDidMount() {
+    const name = await AsyncStorage.getItem('user.name');
+    const email = await AsyncStorage.getItem('user.email');
+    const pic = await AsyncStorage.getItem('user.photo');
+    const profilePic = avatar('/' + pic);
+    this.setState({ email, name });
+    await profilePic.getDownloadURL().then(file => {
+      this.setState({ photo: { uri: file } });
     });
-  };
+  }
 
-  const truncate = (source, size) => {
+  async signOutUser() {
+    await AsyncStorage.getItem('userid').then(async userId => {
+      db().ref('users/' + userId).update({ status: 'Offline' });
+      await AsyncStorage.clear();
+      users().signOut();
+      ToastAndroid.show('Logout Success', ToastAndroid.LONG);
+      this.props.navigation.navigate('Login');
+    })
+  }
+
+  truncate = (source, size) => {
     return source.length > size ? source.slice(0, size - 1) + "…" : source;
   }
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.root}>
-        <View style={styles.headerWrapper}>
-          <View style={styles.imageWrapper}>
-            <Avatar
-              rounded
-              size={120}
-              source={photo}
-              onEditPress={() => console.log('avatar clicked')}
-              showEditButton
-            />
+  render() {
+    return (
+      <SafeAreaView style={styles.safeArea} >
+        <View style={styles.root}>
+          <View style={styles.headerWrapper}>
+            <View style={styles.imageWrapper}>
+              <Avatar
+                rounded
+                size={120}
+                source={this.state.photo}
+                onEditPress={() => console.log('avatar clicked')}
+                showEditButton
+              />
+            </View>
+            <View style={styles.nameWrapper}>
+              <Text style={styles.name}>{this.truncate(this.state.name, 15)}</Text>
+              <Text style={styles.email}>{this.truncate(this.state.email, 20)}</Text>
+            </View>
           </View>
-          <View style={styles.nameWrapper}>
-            <Text style={styles.name}>{truncate(name, 15)}</Text>
-            <Text style={styles.email}>{truncate(email, 20)}</Text>
+          <View style={styles.bodyWrapper}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <ListItem
+                onPress={this.signOutUser}
+                title="Logout"
+                containerStyle={{ borderBottomWidth: 0 }}
+                bottomDivider
+                topDivider
+              />
+            </ScrollView>
           </View>
         </View>
-        <View style={styles.bodyWrapper}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <ListItem
-              onPress={signOutUser}
-              title="Logout"
-              containerStyle={{ borderBottomWidth: 0 }}
-              bottomDivider
-              topDivider
-            />
-          </ScrollView>
-        </View>
-      </View>
-    </SafeAreaView>
-  );
+      </SafeAreaView>
+    );
+  }
 };
 
 export default Profile;

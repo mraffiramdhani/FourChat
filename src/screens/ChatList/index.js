@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import AsyncStorage from '@react-native-community/async-storage';
-import { StyleSheet, View, Text, ScrollView, Modal, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, FlatList, Modal, Alert, ActivityIndicator, ToastAndroid } from 'react-native';
 import { FAB, TextInput, Button } from 'react-native-paper';
 import { ListItem, Avatar, Card } from 'react-native-elements';
 import { db, setData, pushData, users, avatar } from '../../config/initialize';
@@ -60,10 +60,78 @@ const styles = StyleSheet.create({
 
 class ChatList extends Component {
 
-	render() {
+	constructor(props) {
+		super(props)
+		this.state = {
+			users: [],
+		}
+	}
+
+	async componentDidMount() {
+		const uid = await AsyncStorage.getItem('userid');
+		const dbRef = db().ref('messages/' + uid + '/friendList');
+		dbRef.on('value', async snapshot => {
+			let keyList = Object.keys(snapshot.val());
+			let valList = Object.values(snapshot.val());
+			await valList.map(async (item, index) => {
+				const friendKey = keyList[index];
+				await db().ref('users/' + friendKey).on('value', async item => {
+					await this.setState(prevState => {
+						return {
+							users: [...prevState.users, { uid: friendKey, data: item.val() }],
+						};
+					});
+				});
+			});
+		});
+	}
+
+	userAvatar = async source => {
+		let srcPhoto = null;
+		await avatar(source)
+			.getDownloadURL()
+			.then(file => (srcPhoto = { uri: file }));
+		console.log(srcPhoto);
 		return (
-			<Text>Hi</Text>
-		)
+			<Avatar
+				size="large"
+				source={srcPhoto}
+				onPress={() => console.log('avatar clicked')}
+			/>
+		);
+	};
+
+	renderRow = ({ item }) => {
+		return (
+			<ListItem
+				onPress={() => console.log('item clicked')}
+				title={`${item.data.name}`}
+				subtitle={item.data.email}
+				leftAvatar={this.userAvatar(item.data.photo)}
+				containerStyle={{ borderBottomWidth: 0 }}
+				bottomDivider
+				topDivider
+			/>
+		);
+	};
+
+	render() {
+		if (!this.state.users.length > 0) {
+			return (
+				<Text style={{ fontSize: 100 }}>Loading</Text>
+			);
+		}
+		else {
+			return (
+				<SafeAreaView style={styles.safeArea}>
+					<FlatList
+						data={this.state.users}
+						renderItem={this.renderRow}
+						keyExtractor={(item, index) => index.toString()}
+					/>
+				</SafeAreaView>
+			)
+		}
 	}
 
 };

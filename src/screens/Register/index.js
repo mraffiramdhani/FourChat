@@ -129,7 +129,7 @@ class Register extends Component {
 						longitude: position.coords.longitude,
 						loading: false,
 					});
-					console.warn(position);
+					// console.warn(position);
 				},
 				error => {
 					this.setState({ errorMessage: error, loading: false });
@@ -167,7 +167,7 @@ class Register extends Component {
 		} else {
 			signup(email, password)
 				.then(response => {
-					console.warn(response);
+					// console.warn(response);
 					db().ref('users/' + response.user.uid)
 						.set({
 							name: this.state.name,
