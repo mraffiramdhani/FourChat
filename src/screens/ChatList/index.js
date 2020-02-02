@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import AsyncStorage from '@react-native-community/async-storage';
-import { StyleSheet, View, Text, FlatList, Modal, Alert, ActivityIndicator, ToastAndroid } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, FlatList, Modal, Alert, ActivityIndicator, ToastAndroid } from 'react-native';
 import { FAB, TextInput, Button } from 'react-native-paper';
 import { ListItem, Avatar, Card } from 'react-native-elements';
 import { db, setData, pushData, users, avatar } from '../../config/initialize';
@@ -34,8 +34,6 @@ const styles = StyleSheet.create({
 	bodyWrapper: {
 		flex: 1,
 		flexDirection: 'column',
-		justifyContent: 'center',
-		alignItems: 'center',
 		width: '100%',
 	},
 	fab: {
@@ -84,30 +82,31 @@ class ChatList extends Component {
 				});
 			});
 		});
-	}
+	};
 
-	userAvatar = async source => {
-		let srcPhoto = null;
-		await avatar(source)
-			.getDownloadURL()
-			.then(file => (srcPhoto = { uri: file }));
-		console.log(srcPhoto);
+	friendAvatar = async source => {
+		var srcPhoto = null
+		await avatar(source).getDownloadURL().then(file => {
+			srcPhoto = { uri: file }
+		});
 		return (
 			<Avatar
+				rounded
 				size="large"
-				source={srcPhoto}
+				source={srcPhoto !== null ? srcPhoto : require('../../assets/images/4chat.png')}
 				onPress={() => console.log('avatar clicked')}
 			/>
 		);
 	};
 
-	renderRow = ({ item }) => {
+	renderRow = async ({ item }) => {
+		console.log(item);
 		return (
 			<ListItem
 				onPress={() => console.log('item clicked')}
 				title={`${item.data.name}`}
 				subtitle={item.data.email}
-				leftAvatar={this.userAvatar(item.data.photo)}
+				leftAvatar={{ source: require('../../assets/images/default.png') }}
 				containerStyle={{ borderBottomWidth: 0 }}
 				bottomDivider
 				topDivider
@@ -124,11 +123,30 @@ class ChatList extends Component {
 		else {
 			return (
 				<SafeAreaView style={styles.safeArea}>
-					<FlatList
-						data={this.state.users}
-						renderItem={this.renderRow}
-						keyExtractor={(item, index) => index.toString()}
-					/>
+					<View style={styles.root}>
+						<View style={styles.headerWrapper}>
+							<Text style={styles.title}>Conversation</Text>
+						</View>
+						<View style={styles.bodyWrapper}>
+							<ScrollView showsVerticalScrollIndicator={false}>
+								{
+									this.state.users.map((v, i) => {
+										return (
+											<ListItem
+												key={v.data.uid}
+												onPress={() => console.log('item clicked')}
+												title={`${v.data.name}`}
+												subtitle={v.data.email}
+												containerStyle={{ borderBottomWidth: 0 }}
+												bottomDivider
+												topDivider
+											/>
+										)
+									})
+								}
+							</ScrollView>
+						</View>
+					</View>
 				</SafeAreaView>
 			)
 		}

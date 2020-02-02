@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-community/async-storage';
 import { StyleSheet, View, Text, ScrollView, Alert, Modal, ActivityIndicator, ToastAndroid } from 'react-native';
 import { Avatar, ListItem } from 'react-native-elements';
 import { db, setData, users, avatar } from '../../config/initialize';
+import { withNavigation } from 'react-navigation';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
   }
 });
 
-class Profile extends Component {
+class Profiles extends Component {
 
   constructor(props) {
     super(props);
@@ -81,13 +82,13 @@ class Profile extends Component {
     });
   }
 
-  async signOutUser() {
+  async signOutUser(props) {
     await AsyncStorage.getItem('userid').then(async userId => {
       db().ref('users/' + userId).update({ status: 'Offline' });
       await AsyncStorage.clear();
       users().signOut();
       ToastAndroid.show('Logout Success', ToastAndroid.LONG);
-      this.props.navigation.navigate('Login');
+      props.navigation.navigate('Login');
     })
   }
 
@@ -117,7 +118,7 @@ class Profile extends Component {
           <View style={styles.bodyWrapper}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <ListItem
-                onPress={this.signOutUser}
+                onPress={() => this.signOutUser(this.props)}
                 title="Logout"
                 containerStyle={{ borderBottomWidth: 0 }}
                 bottomDivider
@@ -130,5 +131,7 @@ class Profile extends Component {
     );
   }
 };
+
+const Profile = withNavigation(Profiles);
 
 export default Profile;
