@@ -150,6 +150,12 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+        	storeFile file('fourchat.keystore')
+        	storePassword 'brogamer980'
+        	keyAlias 'fourchat'
+        	keyPassword 'brogamer980'
+        }
     }
     buildTypes {
         debug {
