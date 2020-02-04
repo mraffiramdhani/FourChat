@@ -3,9 +3,10 @@ import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import firebase from 'react-native-firebase';
 import AsyncStorage from '@react-native-community/async-storage';
-import { StyleSheet, View, Text, ScrollView, Alert, Modal, ActivityIndicator, PermissionsAndroid, Platform, ToastAndroid } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, PermissionsAndroid, ToastAndroid, Modal, ActivityIndicator } from 'react-native';
+import { Button } from 'react-native-paper';
 import { Avatar, ListItem } from 'react-native-elements';
-import { db, setData, users, avatar } from '../../config/initialize';
+import { db, users } from '../../config/initialize';
 import { withNavigation } from 'react-navigation';
 import RNFetchBlob from 'rn-fetch-blob';
 import ImagePicker from 'react-native-image-picker';
@@ -82,11 +83,13 @@ class Profiles extends Component {
   }
 
   async signOutUser(props) {
+    this.setState({ loading: true });
     await AsyncStorage.getItem('userid').then(async userId => {
       db().ref('users/' + userId).update({ status: 'Offline' });
       await AsyncStorage.clear();
       users().signOut();
       ToastAndroid.show('Logout Success', ToastAndroid.LONG);
+      this.setState({ loading: false });
       props.navigation.navigate('Login');
     })
   }
@@ -168,6 +171,15 @@ class Profiles extends Component {
   render() {
     return (
       <SafeAreaView style={styles.safeArea} >
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={this.state.loading}
+        >
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+            <ActivityIndicator size="large" color="white" />
+          </View>
+        </Modal>
         <View style={styles.root}>
           <View style={styles.headerWrapper}>
             <View style={styles.imageWrapper}>
@@ -182,6 +194,15 @@ class Profiles extends Component {
             <View style={styles.nameWrapper}>
               <Text style={styles.name}>{this.truncate(this.state.name, 15)}</Text>
               <Text style={styles.email}>{this.truncate(this.state.email, 20)}</Text>
+              <Button
+                mode="contained"
+                style={{ marginVertical: 5 }}
+                theme={{ colors: { primary: 'white' } }}
+                uppercase
+                onPress={() => this.props.navigation.navigate('DetailUser')}
+              >
+                edit profile
+              </Button>
             </View>
           </View>
           <View style={styles.bodyWrapper}>

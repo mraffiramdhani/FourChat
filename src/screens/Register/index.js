@@ -4,7 +4,8 @@ import normalize from 'react-native-normalize';
 import Geolocation from 'react-native-geolocation-service';
 import AsyncStorage from '@react-native-community/async-storage';
 import { StyleSheet, View, Text, Image, ScrollView, Platform, PermissionsAndroid, ToastAndroid, Modal, ActivityIndicator } from 'react-native';
-import { TextInput, Button } from 'react-native-paper';
+import { Button } from 'react-native-paper';
+import Input from '../../components/Input';
 import { signup, db, avatar } from '../../config/initialize';
 
 const styles = StyleSheet.create({
@@ -55,12 +56,6 @@ const inputTheme = {
 	},
 };
 
-const emptyTheme = {
-	colors: {
-		primary: 'red',
-	},
-};
-
 class Register extends Component {
 
 	constructor(props) {
@@ -76,6 +71,9 @@ class Register extends Component {
 			errorMessage: null,
 			loading: false,
 			updatesEnabled: false,
+			isNameValid: null,
+			isEmailValid: null,
+			isPasswordValid: null,
 		}
 	}
 
@@ -160,16 +158,16 @@ class Register extends Component {
 
 	submitForm = () => {
 		const { email, name, password } = this.state;
-		if (name.length < 1) {
+		if (!this.state.isNameValid) {
 			ToastAndroid.show('Please input your fullname', ToastAndroid.LONG);
-		} else if (email.length < 6) {
+		} else if (!this.state.isEmailValid) {
 			ToastAndroid.show(
 				'Please input a valid email address',
 				ToastAndroid.LONG,
 			);
-		} else if (password.length < 6) {
+		} else if (this.state.isPasswordValid.find(stat => stat === false) !== undefined) {
 			ToastAndroid.show(
-				'Password must be at least 6 characters',
+				'Please input a valid password format',
 				ToastAndroid.LONG,
 			);
 		} else {
@@ -252,33 +250,55 @@ class Register extends Component {
 						<Image source={require('../../assets/images/register.png')} style={styles.image} />
 						<View style={styles.formWrapper}>
 							<Text style={{ fontSize: 14, color: '#666', textAlign: 'right' }}>{25 - this.state.name.length}</Text>
-							<TextInput
+							<Input
 								label="Full Name"
 								mode="outlined"
+								pattern="^[a-zA-Z ]+$"
 								theme={inputTheme}
 								value={this.state.name}
 								style={styles.input}
 								maxLength={25}
 								onChangeText={txt => this.inputHandler('name', txt)}
+								onValidation={isValid => this.setState({ isNameValid: isValid })}
 							/>
-							<TextInput
+							{
+								this.state.isNameValid !== null && !this.state.isNameValid &&
+								<Text style={{ color: 'red', marginVertical: 2 }}>
+									must not contain any special characters.
+          			</Text>
+							}
+							<Input
 								label="E-mail"
 								mode="outlined"
+								pattern="^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})$"
 								theme={inputTheme}
 								value={this.state.email}
 								style={styles.input}
 								keyboardType="email-address"
 								onChangeText={txt => this.inputHandler('email', txt)}
+								onValidation={isValid => this.setState({ isEmailValid: isValid })}
 							/>
+							{
+								this.state.isEmailValid !== null && !this.state.isEmailValid &&
+								<Text style={{ color: 'red', marginVertical: 2 }}>
+									must be a valid email format
+          			</Text>
+							}
 							<View style={{ flex: 1, flexDirection: 'row' }}>
-								<TextInput
+								<Input
 									label="Password"
 									mode="outlined"
 									theme={inputTheme}
 									value={this.state.password}
+									pattern={[
+										"(?=.*[a-z])",
+										"(?=.*[A-Z])",
+										"^.{6,20}$"
+									]}
 									secureTextEntry={!this.state.visiblePassword}
 									style={[styles.input, { flex: 1 }]}
 									onChangeText={txt => this.inputHandler('password', txt)}
+									onValidation={isValid => this.setState({ isPasswordValid: isValid })}
 								/>
 								<Button
 									icon={!this.state.visiblePassword ? "eye" : "eye-off"}
@@ -288,6 +308,26 @@ class Register extends Component {
 									onPress={() => this.setState({ visiblePassword: !this.state.visiblePassword })}
 								/>
 							</View>
+							<View style={{ flex: 0, flexDirection: 'column', marginVertical: 2 }}>
+								{
+									this.state.isPasswordValid !== null && !this.state.isPasswordValid[0] &&
+									<Text style={{ color: 'red' }}>
+										must be contain at least one lowercase letter.
+          				</Text>
+								}
+								{
+									this.state.isPasswordValid !== null && !this.state.isPasswordValid[1] &&
+									<Text style={{ color: 'red' }}>
+										must be contain at least one uppercase letter.
+          				</Text>
+								}
+								{
+									this.state.isPasswordValid !== null && !this.state.isPasswordValid[2] &&
+									<Text style={{ color: 'red' }}>
+										must be between 6 to 20 characters.
+          				</Text>
+								}
+							</View>
 							<Button
 								style={styles.button}
 								theme={inputTheme}
@@ -296,7 +336,7 @@ class Register extends Component {
 								onPress={this.submitForm}
 							>
 								register
-		      	</Button>
+							</Button>
 							<Button
 								style={styles.button}
 								theme={inputTheme}

@@ -2,10 +2,9 @@ import React, { Component } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import AsyncStorage from '@react-native-community/async-storage';
-import {
-  StyleSheet, View, ScrollView, Image, Platform, PermissionsAndroid, ToastAndroid
-} from 'react-native';
-import { Text, TextInput, Button } from 'react-native-paper';
+import { StyleSheet, View, ScrollView, Image, Platform, PermissionsAndroid, ToastAndroid, Modal, ActivityIndicator } from 'react-native';
+import { Text, Button } from 'react-native-paper';
+import Input from '../../components/Input';
 import Geolocation from 'react-native-geolocation-service';
 import { login, db } from '../../config/initialize';
 
@@ -66,6 +65,9 @@ class Login extends Component {
       email: '',
       password: '',
       visiblePassword: false,
+      loading: false,
+      isEmailValid: null,
+      isPasswordValid: null,
     }
   }
 
@@ -145,17 +147,18 @@ class Login extends Component {
 
   handleLogin = async () => {
     const { email, password } = this.state;
-    if (email.length < 6) {
+    if (!this.state.isEmailValid) {
       ToastAndroid.show(
         'Please input a valid email address',
         ToastAndroid.LONG,
       );
-    } else if (password.length < 6) {
+    } else if (this.state.isPasswordValid.find(stat => stat === false) !== undefined) {
       ToastAndroid.show(
-        'Password must be at least 6 characters',
+        'Please input a valid password',
         ToastAndroid.LONG,
       );
     } else {
+      this.setState({ loading: true });
       db().ref('users/')
         .orderByChild('/email')
         .equalTo(email)
@@ -180,6 +183,7 @@ class Login extends Component {
           await AsyncStorage.setItem('userid', response.user.uid);
           // await AsyncStorage.setItem('user', response.user);
           ToastAndroid.show('Login success', ToastAndroid.LONG);
+          this.setState({ loading: false });
           await this.props.navigation.navigate('ChatList');
         })
         .catch(error => {
@@ -211,6 +215,15 @@ class Login extends Component {
   render() {
     return (
       <SafeAreaView style={styles.safeArea} >
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={this.state.loading}
+        >
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+            <ActivityIndicator size="large" color="white" />
+          </View>
+        </Modal>
         <View style={styles.root}>
           <View style={styles.titleWrapper}>
             <Text style={styles.title}>Login</Text>
@@ -218,24 +231,38 @@ class Login extends Component {
           <ScrollView showsVerticalScrollIndicator={false}>
             <Image source={require('../../assets/images/login.png')} style={styles.image} />
             <View style={styles.formWrapper}>
-              <TextInput
+              <Input
                 label="E-mail"
                 mode="outlined"
                 theme={inputTheme}
                 value={this.state.email}
                 style={styles.input}
+                pattern="^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})$"
                 keyboardType="email-address"
                 onChangeText={this.handleChange('email')}
+                onValidation={isValid => this.setState({ isEmailValid: isValid })}
               />
+              {
+                this.state.isEmailValid !== null && !this.state.isEmailValid &&
+                <Text style={{ color: 'red', marginVertical: 2 }}>
+                  must be a valid email format
+          			</Text>
+              }
               <View style={{ flex: 1, flexDirection: 'row' }}>
-                <TextInput
+                <Input
                   label="Password"
                   mode="outlined"
                   theme={inputTheme}
                   value={this.state.password}
                   secureTextEntry={!this.state.visiblePassword}
+                  pattern={[
+                    "(?=.*[a-z])",
+                    "(?=.*[A-Z])",
+                    "^.{6,20}$"
+                  ]}
                   style={[styles.input, { flex: 1 }]}
                   onChangeText={this.handleChange('password')}
+                  onValidation={isValid => this.setState({ isPasswordValid: isValid })}
                 />
                 <Button
                   icon={!this.state.visiblePassword ? "eye" : "eye-off"}
@@ -244,6 +271,26 @@ class Login extends Component {
                   compact
                   onPress={() => this.setState({ visiblePassword: !this.state.visiblePassword })}
                 />
+              </View>
+              <View style={{ flex: 0, flexDirection: 'column', marginVertical: 2 }}>
+                {
+                  this.state.isPasswordValid !== null && !this.state.isPasswordValid[0] &&
+                  <Text style={{ color: 'red' }}>
+                    must be contain at least one lowercase letter.
+          				</Text>
+                }
+                {
+                  this.state.isPasswordValid !== null && !this.state.isPasswordValid[1] &&
+                  <Text style={{ color: 'red' }}>
+                    must be contain at least one uppercase letter.
+          				</Text>
+                }
+                {
+                  this.state.isPasswordValid !== null && !this.state.isPasswordValid[2] &&
+                  <Text style={{ color: 'red' }}>
+                    must be between 6 to 20 characters.
+          				</Text>
+                }
               </View>
               <Button
                 style={styles.button}
