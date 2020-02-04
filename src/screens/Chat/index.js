@@ -3,10 +3,11 @@ import SafeAreaView from 'react-native-safe-area-view';
 import AsyncStorage from '@react-native-community/async-storage';
 import firebase from 'react-native-firebase';
 import normalize from 'react-native-normalize';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { StyleSheet, Text, View } from 'react-native'
 import { GiftedChat, Bubble, Send } from 'react-native-gifted-chat';
 import { db } from '../../config/initialize';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
+import { connect } from 'react-redux';
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -25,10 +26,11 @@ const styles = StyleSheet.create({
   },
 })
 
-export default class Chat extends Component {
+class Chat extends Component {
 
   constructor(props) {
     super(props)
+    this._isMounted = false;
     this.state = {
       message: '',
       messageList: [],
@@ -39,18 +41,17 @@ export default class Chat extends Component {
     }
   }
 
-  _isMounted = false;
-
   async componentDidMount() {
     this._isMounted = true;
-    const uid = await AsyncStorage.getItem('userid');
-    const uname = await AsyncStorage.getItem('user.name');
-    const uavatar = await AsyncStorage.getItem('user.photo');
+    const uid = this.props.user.data.uid;
+    const uname = this.props.user.data.name;
+    const uavatar = this.props.user.photo;
     const person = this.props.navigation.getParam('person');
-    this.setState({ uid, uname, uavatar, person });
+    await this.setState({ uid, uname, uavatar, person });
+    console.log(this.state.person);
     let msgData = null;
     if (this._isMounted) {
-      msgData = db().ref('messages/' + uid + '/friendList/' + person.uid + '/data/');
+      msgData = db().ref('messages').child(this.state.uid).child(this.state.person.uid).limitToLast(30);
 
       msgData.on('child_added', async snapshot => {
         this.setState(prevState => ({
@@ -59,12 +60,12 @@ export default class Chat extends Component {
       });
     }
     else {
-      db().ref('messages/' + uid + '/friendList/' + person.uid + '/data/').off("child_added");
+      db().ref('messages').child(this.state.uid).child(this.state.person.uid).off("child_added");
     }
   }
 
   componentWillUnmount() {
-    db().ref('messages/' + this.state.uid + '/friendList/' + this.state.person.uid + '/data/').off("child_added");
+    db().ref('messages').child(this.state.uid).child(this.state.person.uid).off("child_added");
     this._isMounted = false;
   }
 
@@ -74,9 +75,7 @@ export default class Chat extends Component {
         .database()
         .ref('messages')
         .child(this.state.uid)
-        .child('friendList')
         .child(this.state.person.uid)
-        .child('data')
         .push().key;
       let updates = {};
       let message = {
@@ -92,17 +91,17 @@ export default class Chat extends Component {
       updates[
         'messages/' +
         this.state.uid +
-        '/friendList/' +
+        '/' +
         this.state.person.uid +
-        '/data/' +
+        '/' +
         msgId
       ] = message;
       updates[
         'messages/' +
         this.state.person.uid +
-        '/friendList/' +
+        '/' +
         this.state.uid +
-        '/data/' +
+        '/' +
         msgId
       ] = message;
       firebase
@@ -169,3 +168,11 @@ export default class Chat extends Component {
     );
   };
 };
+
+const mapStateToProps = state => {
+  return {
+    user: state.user
+  }
+}
+
+export default connect(mapStateToProps)(Chat);

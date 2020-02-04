@@ -2,12 +2,12 @@
 import React, { Component } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
-import AsyncStorage from '@react-native-community/async-storage';
 import firebase from 'react-native-firebase';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, View, Text, FlatList, Modal, Alert, ActivityIndicator, ToastAndroid } from 'react-native';
 import { FAB, TextInput, Button } from 'react-native-paper';
 import { ListItem, Avatar, Card } from 'react-native-elements';
+import { connect } from 'react-redux';
 
 const styles = StyleSheet.create({
 	safeArea: { flex: 1 },
@@ -72,6 +72,7 @@ class ChatList extends Component {
 
 	constructor(props) {
 		super(props)
+		this._isMounted = false;
 		this.state = {
 			uid: null,
 			users: [],
@@ -84,55 +85,61 @@ class ChatList extends Component {
 	}
 
 	async componentDidMount() {
-		const uid = await AsyncStorage.getItem('userid');
+		this._isMounted = true;
+		const uid = this.props.user.data.uid;
 		this.setState({ uid });
-		const dbRef = firebase.database().ref('messages/' + uid + '/friendList/');
-		firebase.database().ref('messages/' + uid + '/').on('child_added', async snapshot => {
-			console.log('added', snapshot.val());
+		const dbRef = firebase.database().ref('messages').child(uid);
+		dbRef.on('value', async snapshot => {
 			if (snapshot.val() !== null) {
 				let keyList = Object.keys(snapshot.val());
 				let valList = Object.values(snapshot.val());
-				console.log(keyList, valList);
 				await valList.map(async (item, index) => {
 					const friendKey = keyList[index];
-					console.log(friendKey);
-					await firebase.database().ref('users/' + friendKey).once('value', async item => {
+					await firebase.database().ref('users').child(friendKey).on('value', async item => {
 						let person = item.val();
-						console.log(person);
-						this.setState(prevState => {
-							return {
-								users: [...prevState.users, person],
-							};
-						});
+						let users = this.state.users;
+						if (users.length === 0 && person !== null) {
+							this.setState(prevState => {
+								return {
+									users: [...prevState.users, person],
+								};
+							});
+						}
+						else if (users.length !== 0) {
+							const mapOfUID = users.map(v => { return v.uid });
+							if (mapOfUID.find(ids => ids === person.uid)) {
+								console.log('same person');
+							}
+							else {
+								this.setState(prevState => {
+									return {
+										users: [...prevState.users, person],
+									};
+								});
+							}
+						}
 					});
 				});
+				await this.setState({ isLoading: false });
+			}
+			else {
+				this.setState({ users: [] });
 			}
 		});
-
-		dbRef.on('child_changed', async snapshot => {
-			console.log('updated', snapshot);
-			let valList = Object.values(snapshot);
-			await firebase.database().ref('users/' + valList[0]).once('value', async item => {
-				let person = item.val();
-				this.setState(prevState => {
-					return {
-						users: prevState.users.map(user => {
-							if (user.uid === person.uid) {
-								user = person;
-							}
-							return user;
-						})
-					};
-				});
-			});
-		});
-		await this.setState({ isLoading: false });
 	};
+
+	onChatClicked = (person) => {
+		this.state.users.map(v => {
+			firebase.database().ref('users').child(v.uid).off('value');
+		});
+		firebase.database().ref('messages').child(this.props.user.data.uid).off('value');
+		this.props.navigation.navigate('Chat', { person });
+	}
 
 	renderRow = (item) => {
 		return (
 			<ListItem
-				onPress={() => this.props.navigation.navigate('Chat', { person: item })}
+				onPress={() => this.onChatClicked(item)}
 				title={`${item.name}`}
 				subtitle={item.email}
 				leftAvatar={{
@@ -152,48 +159,24 @@ class ChatList extends Component {
 		);
 	};
 
-	onRefresh = () => {
-		const dbRef = firebase.database().ref('messages/' + this.state.uid + '/friendList/');
-		dbRef.on('value', async snapshot => {
-			if (snapshot.val() !== null) {
-				let keyList = Object.keys(snapshot.val());
-				let valList = Object.values(snapshot.val());
-				await valList.map(async (item, index) => {
-					const friendKey = keyList[index];
-					await firebase.database().ref('users/' + friendKey).once('value', async item => {
-						let person = item.val();
-						this.setState(prevState => {
-							return {
-								users: prevState.users.map(user => {
-									if (user.uid === person.uid) {
-										user = person;
-									}
-									return user;
-								})
-							};
-						});
-					});
-				});
-			}
-		});
-	}
-
 	onSubmitFriend = () => {
 		firebase.database()
 			.ref('users')
 			.once('value')
 			.then(async snapshot => {
-				const uid = await AsyncStorage.getItem('userid');
-				const uname = await AsyncStorage.getItem('user.name');
-				const uavatar = await AsyncStorage.getItem('user.photo');
+				const uid = await this.props.user.data.uid;
+				const uname = await this.props.user.data.name;
+				const uavatar = await this.props.user.photo;
 				const db_users = await Object.values(snapshot.val());
 				const friend = await db_users.find(item => item.email === this.state.addEmail);
 				if (friend.uid !== undefined && friend.uid !== uid) {
 					firebase.database()
-						.ref(`messages/${uid}`)
+						.ref(`messages`)
+						.child(uid)
 						.once('value', async snapshot => {
-							if ('friendList' in snapshot.val()) {
-								const friendList = Object.keys(snapshot.val().friendList);
+							const data = await snapshot.val();
+							if (data !== null) {
+								const friendList = Object.keys(data);
 								const checkIfFriend = friendList.find(item => item === friend.uid);
 								if (checkIfFriend !== undefined) {
 									Alert.alert(
@@ -204,6 +187,14 @@ class ChatList extends Component {
 									);
 								}
 								else {
+									let msgId = firebase
+										.database()
+										.ref('messages')
+										.child(uid)
+										.child('friendList')
+										.child(friend.uid)
+										.child('data')
+										.push().key;
 									Alert.alert(
 										'Add Friend Success',
 										'Congratulation, Say Hi! to your new friend ?',
@@ -211,14 +202,6 @@ class ChatList extends Component {
 											{
 												text: 'Send',
 												onPress: async () => {
-													let msgId = firebase
-														.database()
-														.ref('messages')
-														.child(uid)
-														.child('friendList')
-														.child(friend.uid)
-														.child('data')
-														.push().key;
 													let updates = {};
 													let message = {
 														_id: msgId,
@@ -232,18 +215,14 @@ class ChatList extends Component {
 													};
 													updates[
 														'messages/' +
-														uid +
-														'/friendList/' +
-														friend.uid +
-														'/data/' +
+														uid + '/' +
+														friend.uid + '/' +
 														msgId
 													] = message;
 													updates[
 														'messages/' +
-														friend.uid +
-														'/friendList/' +
-														uid +
-														'/data/' +
+														friend.uid + '/' +
+														uid + '/' +
 														msgId
 													] = message;
 													firebase
@@ -258,21 +237,23 @@ class ChatList extends Component {
 									);
 								}
 							} else {
+								let msgId = firebase
+									.database()
+									.ref('messages')
+									.child(uid)
+									.child(friend.uid)
+									.push().key;
 								Alert.alert(
 									'Add Friend Success',
 									'Congratulation, Say Hi! to your new friend ?',
 									[
 										{
+											text: 'Skip',
+											style: 'cancel',
+										},
+										{
 											text: 'Send',
 											onPress: async () => {
-												let msgId = firebase
-													.database()
-													.ref('messages')
-													.child(uid)
-													.child('friendList')
-													.child(friend.uid)
-													.child('data')
-													.push().key;
 												let updates = {};
 												let message = {
 													_id: msgId,
@@ -286,18 +267,14 @@ class ChatList extends Component {
 												};
 												updates[
 													'messages/' +
-													uid +
-													'/friendList/' +
-													friend.uid +
-													'/data/' +
+													uid + '/' +
+													friend.uid + '/' +
 													msgId
 												] = message;
 												updates[
 													'messages/' +
-													friend.uid +
-													'/friendList/' +
-													uid +
-													'/data/' +
+													friend.uid + '/' +
+													uid + '/' +
 													msgId
 												] = message;
 												firebase
@@ -346,7 +323,7 @@ class ChatList extends Component {
 							title={
 								<View style={{ flexDirection: 'row', justifyContent: 'space-between', margin: 10 }}>
 									<Text style={{ fontSize: 18, fontFamily: 'Nunito-Regular' }}>Add Friend</Text>
-									<Icon name="ios-close" size={25} onPress={() => this.setState({ visibleModal: false })} />
+									<Icon name="ios-close" size={30} onPress={() => this.setState({ visibleModal: false })} />
 								</View>
 							}
 							containerStyle={styles.card}
@@ -383,7 +360,7 @@ class ChatList extends Component {
 						<Card title={
 							<View style={{ flexDirection: 'row', justifyContent: 'space-between', margin: 10 }}>
 								<Text style={{ fontSize: 18, fontFamily: 'Nunito-Regular' }}>{this.state.friend.name}</Text>
-								<Icon name="ios-close" size={25} onPress={() => this.setState({ visibleFriendModal: false })} />
+								<Icon name="ios-close" size={30} onPress={() => this.setState({ visibleFriendModal: false })} />
 							</View>
 						}
 							containerStyle={styles.friendCard}
@@ -405,7 +382,7 @@ class ChatList extends Component {
 									style={{ width: '100%' }}
 									onPress={() => {
 										this.setState({ visibleFriendModal: false });
-										this.props.navigation.navigate('Chat', { person: this.state.friend });
+										this.onChatClicked(this.state.friend);
 									}}
 								>
 									chat now
@@ -446,16 +423,16 @@ class ChatList extends Component {
 						icon="message-plus"
 						onPress={() => this.setState({ visibleModal: true })}
 					/>
-					<FAB
-						style={styles.refresh}
-						small
-						icon="reload"
-						onPress={() => this.onRefresh()}
-					/>
 				</View>
 			</SafeAreaView>
 		)
 	};
 };
 
-export default ChatList;
+const mapStateToProps = state => {
+	return {
+		user: state.user
+	}
+}
+
+export default connect(mapStateToProps)(ChatList);

@@ -3,13 +3,14 @@ import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import firebase from 'react-native-firebase';
 import AsyncStorage from '@react-native-community/async-storage';
+import RNFetchBlob from 'rn-fetch-blob';
+import ImagePicker from 'react-native-image-picker';
 import { StyleSheet, View, Text, ScrollView, PermissionsAndroid, ToastAndroid, Modal, ActivityIndicator } from 'react-native';
-import { Button } from 'react-native-paper';
 import { Avatar, ListItem } from 'react-native-elements';
 import { db, users } from '../../config/initialize';
 import { withNavigation } from 'react-navigation';
-import RNFetchBlob from 'rn-fetch-blob';
-import ImagePicker from 'react-native-image-picker';
+import { connect } from 'react-redux';
+import { setPhoto } from '../../redux/action/user';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -158,6 +159,7 @@ class Profiles extends Component {
                 .update({ photo: data.downloadURL });
               this.setState({ photo: data.downloadURL });
               AsyncStorage.setItem('user.photo', this.state.photo);
+              this.props.setPhoto(this.state.photo);
             }).catch(err => console.log(err));
         }
       });
@@ -186,27 +188,25 @@ class Profiles extends Component {
               <Avatar
                 rounded
                 size={120}
-                source={{ uri: this.state.photo }}
+                source={{ uri: this.props.user.photo }}
                 onEditPress={() => this.updateProfilePic()}
                 showEditButton
               />
             </View>
             <View style={styles.nameWrapper}>
-              <Text style={styles.name}>{this.truncate(this.state.name, 15)}</Text>
-              <Text style={styles.email}>{this.truncate(this.state.email, 20)}</Text>
-              <Button
-                mode="contained"
-                style={{ marginVertical: 5 }}
-                theme={{ colors: { primary: 'white' } }}
-                uppercase
-                onPress={() => this.props.navigation.navigate('DetailUser')}
-              >
-                edit profile
-              </Button>
+              <Text style={styles.name}>{this.truncate(this.props.user.data.name, 15)}</Text>
+              <Text style={styles.email}>{this.truncate(this.props.user.data.email, 20)}</Text>
             </View>
           </View>
           <View style={styles.bodyWrapper}>
             <ScrollView showsVerticalScrollIndicator={false}>
+              <ListItem
+                onPress={() => this.props.navigation.navigate('DetailUser')}
+                title="Edit Profile"
+                containerStyle={{ borderBottomWidth: 0 }}
+                bottomDivider
+                topDivider
+              />
               <ListItem
                 onPress={() => this.signOutUser(this.props)}
                 title="Logout"
@@ -224,4 +224,16 @@ class Profiles extends Component {
 
 const Profile = withNavigation(Profiles);
 
-export default Profile;
+const mapStateToProps = state => {
+  return {
+    user: state.user
+  }
+}
+
+const mapDispatchToProps = dispatch => {
+  return {
+    setPhoto: photo => dispatch(setPhoto(photo))
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Profile);

@@ -2,11 +2,13 @@ import React, { Component } from 'react';
 import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import AsyncStorage from '@react-native-community/async-storage';
-import { StyleSheet, View, ScrollView, Image, Platform, PermissionsAndroid, ToastAndroid, Modal, ActivityIndicator } from 'react-native';
-import { Text, Button } from 'react-native-paper';
 import Input from '../../components/Input';
 import Geolocation from 'react-native-geolocation-service';
 import { login, db } from '../../config/initialize';
+import { StyleSheet, View, ScrollView, Image, Platform, PermissionsAndroid, ToastAndroid, Modal, ActivityIndicator } from 'react-native';
+import { Text, Button } from 'react-native-paper';
+import { connect } from 'react-redux';
+import { setUser, setPhoto } from '../../redux/action/user';
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -167,6 +169,9 @@ class Login extends Component {
           if (data !== null) {
             let user = Object.values(data);
 
+            this.props.setUser(user[0]);
+            this.props.setPhoto(user[0].photo);
+            // experimental purposes
             AsyncStorage.setItem('user.email', user[0].email);
             AsyncStorage.setItem('user.name', user[0].name);
             AsyncStorage.setItem('user.photo', user[0].photo);
@@ -315,7 +320,20 @@ class Login extends Component {
         </View>
       </SafeAreaView>
     );
-  }
+  };
 };
 
-export default Login;
+const mapStateToProps = state => {
+  return {
+    user: state.user
+  }
+}
+
+const mapDispatchToProps = dispatch => {
+  return {
+    setUser: data => dispatch(setUser(data)),
+    setPhoto: photo => dispatch(setPhoto(photo))
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Login);

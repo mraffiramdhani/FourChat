@@ -3,10 +3,12 @@ import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import Geolocation from 'react-native-geolocation-service';
 import AsyncStorage from '@react-native-community/async-storage';
-import { StyleSheet, View, Text, Image, ScrollView, Platform, PermissionsAndroid, ToastAndroid, Modal, ActivityIndicator } from 'react-native';
-import { Button } from 'react-native-paper';
 import Input from '../../components/Input';
 import { signup, db, avatar } from '../../config/initialize';
+import { StyleSheet, View, Text, Image, ScrollView, Platform, PermissionsAndroid, ToastAndroid, Modal, ActivityIndicator } from 'react-native';
+import { Button } from 'react-native-paper';
+import { connect } from 'react-redux';
+import { setUser, setPhoto } from '../../redux/action/user';
 
 const styles = StyleSheet.create({
 	safeArea: { flex: 1 },
@@ -204,6 +206,10 @@ class Register extends Component {
 								password: '',
 							});
 						});
+					await db().ref('users/' + response.user.uid).once('value', async snapshot => {
+						this.props.setUser(snapshot.val());
+						this.props.setPhoto(snapshot.val().photo);
+					});
 					AsyncStorage.setItem('user.email', this.state.email);
 					AsyncStorage.setItem('user.name', this.state.name);
 					AsyncStorage.setItem('user.photo', this.state.photo);
@@ -354,4 +360,17 @@ class Register extends Component {
 	}
 };
 
-export default Register;
+const mapStateToProps = state => {
+	return {
+		user: state.user
+	}
+}
+
+const mapDispatchToProps = dispatch => {
+	return {
+		setUser: data => dispatch(setUser(data)),
+		setPhoto: photo => dispatch(setPhoto(photo)),
+	}
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Register);

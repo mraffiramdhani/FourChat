@@ -7,6 +7,8 @@ import { Button } from 'react-native-paper';
 import Input from '../../components/Input';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { users, db } from '../../config/initialize';
+import { connect } from 'react-redux';
+import { setUser } from '../../redux/action/user';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -98,7 +100,7 @@ class DetailUser extends Component {
     }
     else {
       await this.setState({ loading: true });
-      const uid = await AsyncStorage.getItem('userid');
+      const uid = this.props.user.data.uid;
       db().ref('users/' + uid).update({
         name: name,
         email: email,
@@ -107,6 +109,9 @@ class DetailUser extends Component {
       if (password.length > 0 && !isPasswordValid.find(stat => stat === false) !== undefined) {
         await users().currentUser.updatePassword(password);
       }
+      await db().ref('users/' + uid).once('value', async snapshot => {
+        this.props.setUser(snapshot.val());
+      });
       ToastAndroid.show('Changes Saved', ToastAndroid.LONG);
       this.setState({ loading: false });
     }
@@ -226,7 +231,19 @@ class DetailUser extends Component {
         </View>
       </SafeAreaView>
     );
-  }
+  };
 };
 
-export default DetailUser;
+const mapStateToProps = state => {
+  return {
+    user: state.user
+  }
+}
+
+const mapDispatchToProps = dispatch => {
+  return {
+    setUser: data => dispatch(setUser(data))
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(DetailUser);
