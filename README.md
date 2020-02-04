@@ -13,12 +13,6 @@
 
 ## Screenshots
 
-### Desktop
-<p align="center">
-<img src="https://user-images.githubusercontent.com/46930178/72214053-dcf37f80-352c-11ea-9264-81ff9cab4bca.png">
-</p>
-
-### Mobile
 <p align="center">
 <img src="https://user-images.githubusercontent.com/46930178/72214054-dd8c1600-352c-11ea-809c-ddfc9f823e00.png">
 </p>
