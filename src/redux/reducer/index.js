@@ -1,11 +1,9 @@
 import { combineReducers } from 'redux';
 
-import chat from './chat';
-import session from './session';
+import user from './user';
 
 const appReducer = combineReducers({
-  chat,
-  session
+  user
 });
 
 export default appReducer;

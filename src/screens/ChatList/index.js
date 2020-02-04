@@ -4,6 +4,7 @@ import SafeAreaView from 'react-native-safe-area-view';
 import normalize from 'react-native-normalize';
 import AsyncStorage from '@react-native-community/async-storage';
 import firebase from 'react-native-firebase';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, View, Text, FlatList, Modal, Alert, ActivityIndicator, ToastAndroid } from 'react-native';
 import { FAB, TextInput, Button } from 'react-native-paper';
 import { ListItem, Avatar, Card } from 'react-native-elements';
@@ -61,6 +62,10 @@ const styles = StyleSheet.create({
 		width: normalize(320),
 		height: normalize(200, 'height'),
 	},
+	friendCard: {
+		width: normalize(320),
+		height: normalize(400, 'height'),
+	}
 });
 
 class ChatList extends Component {
@@ -74,6 +79,7 @@ class ChatList extends Component {
 			visibleFriendModal: false,
 			addEmail: '',
 			isLoading: true,
+			friend: {},
 		}
 	}
 
@@ -129,7 +135,16 @@ class ChatList extends Component {
 				onPress={() => this.props.navigation.navigate('Chat', { person: item })}
 				title={`${item.name}`}
 				subtitle={item.email}
-				leftAvatar={{ source: { uri: item.photo }, size: 'large', onPress: () => { this.setState({ visibleFriendModal: true }) } }}
+				leftAvatar={{
+					source: { uri: item.photo },
+					size: 'large',
+					onPress: () => {
+						this.setState({
+							visibleFriendModal: true,
+							friend: item,
+						})
+					}
+				}}
 				containerStyle={{ borderBottomWidth: 0 }}
 				bottomDivider
 				topDivider
@@ -140,17 +155,13 @@ class ChatList extends Component {
 	onRefresh = () => {
 		const dbRef = firebase.database().ref('messages/' + this.state.uid + '/friendList/');
 		dbRef.on('value', async snapshot => {
-			console.log('refreshed', snapshot.val());
 			if (snapshot.val() !== null) {
 				let keyList = Object.keys(snapshot.val());
 				let valList = Object.values(snapshot.val());
-				console.log(keyList, valList);
 				await valList.map(async (item, index) => {
 					const friendKey = keyList[index];
-					console.log(friendKey);
 					await firebase.database().ref('users/' + friendKey).once('value', async item => {
 						let person = item.val();
-						console.log(person);
 						this.setState(prevState => {
 							return {
 								users: prevState.users.map(user => {
@@ -177,15 +188,6 @@ class ChatList extends Component {
 				const uavatar = await AsyncStorage.getItem('user.photo');
 				const db_users = await Object.values(snapshot.val());
 				const friend = await db_users.find(item => item.email === this.state.addEmail);
-				// if (fKey !== undefined) {
-				// 	Alert.alert(
-				// 		'Add Friend Message',
-				// 		'You Cannot Add Yourself to Your Friend List.',
-				// 		[{ text: 'OK', style: 'cancel', onPress: () => this.setState({ addEmail: '', visibleModal: false }) }],
-				// 		{ cancelable: false }
-				// 	);
-				// }
-				// else {
 				if (friend.uid !== undefined && friend.uid !== uid) {
 					firebase.database()
 						.ref(`messages/${uid}`)
@@ -206,20 +208,6 @@ class ChatList extends Component {
 										'Add Friend Success',
 										'Congratulation, Say Hi! to your new friend ?',
 										[
-											// {
-											// 	text: 'Skip',
-											// 	style: 'cancel',
-											// 	onPress: async () => {
-											// 		firebase
-											// 			.database()
-											// 			.ref('messages')
-											// 			.child(uid)
-											// 			.child('friendList')
-											// 			.child(friend.uid)
-											// 			.set({ data: true });
-											// 		this.setState({ addEmail: '', visibleModal: false });
-											// 	}
-											// },
 											{
 												text: 'Send',
 												onPress: async () => {
@@ -274,20 +262,6 @@ class ChatList extends Component {
 									'Add Friend Success',
 									'Congratulation, Say Hi! to your new friend ?',
 									[
-										// {
-										// 	text: 'Skip',
-										// 	style: 'cancel',
-										// 	onPress: async () => {
-										// 		firebase
-										// 			.database()
-										// 			.ref('messages')
-										// 			.child(uid)
-										// 			.child('friendList')
-										// 			.child(friend.uid)
-										// 			.set({ data: true });
-										// 		this.setState({ addEmail: '', visibleModal: false });
-										// 	}
-										// },
 										{
 											text: 'Send',
 											onPress: async () => {
@@ -368,7 +342,15 @@ class ChatList extends Component {
 					}}
 				>
 					<View style={styles.cardWrapper}>
-						<Card title="Add Friend" containerStyle={styles.card}>
+						<Card
+							title={
+								<View style={{ flexDirection: 'row', justifyContent: 'space-between', margin: 10 }}>
+									<Text style={{ fontSize: 18, fontFamily: 'Nunito-Regular' }}>Add Friend</Text>
+									<Icon name="ios-close" size={25} onPress={() => this.setState({ visibleModal: false })} />
+								</View>
+							}
+							containerStyle={styles.card}
+						>
 							<TextInput
 								mode="outlined"
 								theme={{ colors: { primary: '#117C6F' } }}
@@ -385,7 +367,7 @@ class ChatList extends Component {
 								onPress={this.onSubmitFriend}
 							>
 								add
-            </Button>
+            	</Button>
 						</Card>
 					</View>
 				</Modal>
@@ -398,24 +380,37 @@ class ChatList extends Component {
 					}}
 				>
 					<View style={styles.cardWrapper}>
-						<Card title="Add Friend" containerStyle={styles.card}>
-							<TextInput
-								mode="outlined"
-								theme={{ colors: { primary: '#117C6F' } }}
-								label="Email"
-								keyboardType="email-address"
-								value={this.state.addEmail}
-								onChangeText={e => this.setState({ addEmail: e })}
-							/>
-							<Button
-								style={{ marginTop: 10 }}
-								mode="contained"
-								theme={{ colors: { primary: '#117C6F' } }}
-								uppercase
-								onPress={this.onSubmitFriend}
-							>
-								add
-            </Button>
+						<Card title={
+							<View style={{ flexDirection: 'row', justifyContent: 'space-between', margin: 10 }}>
+								<Text style={{ fontSize: 18, fontFamily: 'Nunito-Regular' }}>{this.state.friend.name}</Text>
+								<Icon name="ios-close" size={25} onPress={() => this.setState({ visibleFriendModal: false })} />
+							</View>
+						}
+							containerStyle={styles.friendCard}
+						>
+							<View style={{ flexDirection: 'column', alignItems: 'center', margin: 10 }}>
+								<Avatar
+									rounded
+									source={{ uri: this.state.friend.photo }}
+									size="xlarge"
+								/>
+								<View style={{ flexDirection: 'column', alignItems: 'center', marginVertical: 15 }}>
+									<Text style={{ fontSize: 22, fontFamily: 'Nunito-Bold' }}>{this.state.friend.name}</Text>
+									<Text style={{ fontSize: 14, fontFamily: 'Nunito-Regular', color: '#444' }}>{this.state.friend.email}</Text>
+								</View>
+								<Button
+									mode="contained"
+									theme={{ colors: { primary: '#117C6F' } }}
+									uppercase
+									style={{ width: '100%' }}
+									onPress={() => {
+										this.setState({ visibleFriendModal: false });
+										this.props.navigation.navigate('Chat', { person: this.state.friend });
+									}}
+								>
+									chat now
+            		</Button>
+							</View>
 						</Card>
 					</View>
 				</Modal>
